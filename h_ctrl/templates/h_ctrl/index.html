@@ -1,0 +1,9 @@
+{% if pi_list %}
+    <ul>
+    {% for rasp in pi_list %}
+        <li><a href="{% url 'detail' rasp.id  %}">{{ rasp.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No devices are available.</p>
+{% endif %}

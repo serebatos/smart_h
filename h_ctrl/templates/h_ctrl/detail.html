@@ -1,0 +1,48 @@
+<html>
+
+<head>
+    <script src="{{ STATIC_URL }}jquery-1.11.1.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $("#result").value = "No actions"
+            $(".test").click(function () {
+                $.post("{% url "ajax" rasp.id %}",
+                        {name: "Donald Duck",
+                            city: $(this).attr("name"),
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        function (data, status) {
+                            {#                            alert("Data: " + data + "\nStatus: " + status);#}
+                            $("#result").val(data + " = " + status)
+                        })
+                        .fail(function () {
+                            alert("error");
+                        });
+                return false;
+            });
+        });
+    </script>
+</head>
+<body>
+<h1>{{ rasp.name }}</h1>
+<ul>
+    {% for action in rasp.action_set.all %}
+        {#        <form id="ActForm" action="" method="POST">#}
+        {#            {% csrf_token %}#}
+        {#            <li>#}
+        {#                <input type="submit" value="{{ action.name }}"/>#}
+        {#            </li>#}
+        {#        </form>#}
+        <li>
+            <input type="button" id="action" name="{{ action.name }}" value="{{ action.name }}" class="test"/>
+        </li>
+    {% endfor %}
+    <li>
+        <h4>Result:<input id="result" type="text" readonly="true" value="empty" width="400px"/></h4>
+    </li>
+
+</ul>
+
+
+</body>
+</html>
