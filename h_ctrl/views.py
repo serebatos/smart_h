@@ -37,7 +37,7 @@ def command(request, pi_id):
 def ajax(request, pi_id):
     message = pi_id
     if request.method == 'POST' and request.is_ajax():
-        name = request.POST['name']
+        # name = request.POST['name']
         action = request.POST['action']
         if action == 'turn_on':
             call(["python","/home/pi/dev/scripts/led_blink.py"])
