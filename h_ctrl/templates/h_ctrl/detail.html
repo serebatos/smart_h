@@ -7,8 +7,8 @@
             $("#result").value = "No actions"
             $(".test").click(function () {
                 $.post("{% url "ajax" rasp.id %}",
-                        {name: "Donald Duck",
-                            city: $(this).attr("name"),
+                        {
+                            action: $(this).attr("name"),  //The name of action which is passed to the view
                             csrfmiddlewaretoken: '{{ csrf_token }}'
                         },
                         function (data, status) {

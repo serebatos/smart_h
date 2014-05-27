@@ -5,6 +5,7 @@ from django.shortcuts import render_to_response
 from django.core.context_processors import csrf
 from django.http import HttpResponse
 from models import Pi
+from subprocess import call
 
 # Create your views here.
 
@@ -37,7 +38,9 @@ def ajax(request, pi_id):
     message = pi_id
     if request.method == 'POST' and request.is_ajax():
         name = request.POST['name']
-        action = request.POST['city']
-        # message = name + ' lives in ' + city + " with pi_id = " + pi_id
-        message = action
+        action = request.POST['action']
+        if action == 'turn_on':
+            call(["python","/home/pi/dev/scripts/led_blink.py"])
+
+        message = action + '(' + pi_id +')'
     return HttpResponse(message)
