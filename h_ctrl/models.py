@@ -3,17 +3,23 @@ from django.db import models
 # Create your models here.
 
 
-class Pi(models.Model):
+class Home(models.Model):
     name = models.CharField(max_length=20)
-    period = models.IntegerField(default=0)
+
+
+
+class Pi(models.Model):
+    parent = models.ForeignKey(Home)
+    name = models.CharField(max_length=20)
 
     def __unicode__(self):
         return self.name
 
 
 class Action(models.Model):
-    schedule = models.ForeignKey(Pi)
+    controller = models.ForeignKey(Pi)
     name = models.CharField(max_length=20)
+    pin = models.IntegerField(default=0)
 
     def __unicode__(self):
         return self.name
