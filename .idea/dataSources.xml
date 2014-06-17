@@ -4,7 +4,7 @@
     <data-source source="LOCAL" name="Django default" uuid="20eee7c5-8040-484a-b3b2-77e2c0aac4cf">
       <driver-ref>sqlite.xerial</driver-ref>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:D:\study\python\smart_h\db.sqlite3</jdbc-url>
+      <jdbc-url>jdbc:sqlite:F:\study\python\smart_h\db.sqlite3</jdbc-url>
       <libraries />
     </data-source>
   </component>
