@@ -4,6 +4,7 @@ from django.shortcuts import render, get_object_or_404
 from django.shortcuts import render_to_response
 from django.core.context_processors import csrf
 from django.http import HttpResponse
+from h_ctrl.models import Action
 from models import Pi
 from subprocess import call
 
@@ -41,6 +42,10 @@ def ajax(request, pi_id):
         action = request.POST['action']
         if action == 'turn_on':
             call(["python","/home/pi/dev/scripts/led_blink.py"])
-
+        try:
+            actObj = get_object_or_404(Action,name=action)
+            call(["python","/home/pi/dev/scripts/switch.py",actObj.pin, actObj.cmd_code])
+        except Action.DoesNotExist:
+            raise  Http404
         message = action + '(' + pi_id +')'
     return HttpResponse(message)
