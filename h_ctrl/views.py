@@ -44,7 +44,7 @@ def ajax(request, pi_id):
             call(["python","/home/pi/dev/scripts/led_blink.py"])
         try:
             actObj = get_object_or_404(Action,name=action)
-            call(["python","/home/pi/dev/scripts/switch.py",actObj.pin, actObj.cmd_code])
+            call(["python","/home/pi/dev/scripts/switch.py","%s" % actObj.pin, "%s" % actObj.cmd_code])
         except Action.DoesNotExist:
             raise  Http404
         message = action + '(' + pi_id +')'
