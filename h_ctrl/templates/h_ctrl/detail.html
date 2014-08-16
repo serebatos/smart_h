@@ -8,6 +8,7 @@
             $(".test").click(function () {
                 $.post("{% url "ajax" rasp.id %}",
                         {
+                            type: "SINGLE",
                             action: $(this).attr("name"),  //The name of action which is passed to the view
                             csrfmiddlewaretoken: '{{ csrf_token }}'
                         },
@@ -22,9 +23,47 @@
             });
         });
     </script>
+    <style>
+        .inactive {
+            color: red;
+        }
+
+        .active {
+            color: green;
+        }
+    </style>
 </head>
 <body>
 <h1>{{ rasp.name }}</h1>
+
+<h1>Все расписания - внезависимости от Pi</h1>
+<ul>
+    {% for sch in sch_all %}
+        <li>
+            <div style="white-space: nowrap;">
+                {{ sch.name }}
+                <table style="border:1px solid  gray; border-collapse: collapse" >
+                    <tr>
+                        <td style="border-right: 1px solid gray">Статус неопределен</td>
+                        <td style="border-right: 1px solid gray"><input type="button" class="sched" id="sch_{{ sch.id }}" name="start" value="Старт"/></td>
+                        <td><input type="button" class="sched" id="sch_{{ sch.id }}" name="stop" value="Стоп"/></td>
+                    </tr>
+                </table>
+            </div>
+
+            <ol>
+                {% for act in sch.actions.all %}
+                    <li><h5>{{ act.name }}</h5></li>
+                {% endfor %}
+            </ol>
+        </li>
+    {% endfor %}
+</ul>
+
+
+<br/>
+
+<h1>Actions</h1>
 <ul>
     {% for action in rasp.action_set.all %}
         {#        <form id="ActForm" action="" method="POST">#}
@@ -34,7 +73,9 @@
         {#            </li>#}
         {#        </form>#}
         <li>
-            <input type="button" id="action" name="{{ action.name }}" value="{{ action.name }}" class="test" style="width:200px"/>
+            <input type="button" id="action" name="{{ action.name }}" value="{{ action.name }}" class="test"
+                   style="width:200px"/>
+
         </li>
     {% endfor %}
     <li>
