@@ -5,6 +5,7 @@
     <script type="text/javascript">
         $(document).ready(function () {
             $("#result").value = "No actions"
+            $("div#preload h2").html("Some Text Here")
             $(".test").click(function () {
                 $.post("{% url "ajax" rasp.id %}",
                         {
@@ -13,11 +14,30 @@
                             csrfmiddlewaretoken: '{{ csrf_token }}'
                         },
                         function (data, status) {
+                            alert("Data: " + data + "\nStatus: " + status);
+                            $("#result").val(data + " = " + status)
+                        })
+                        .fail(function (xhr, ajaxOptions, thrownError) {
+                            $("div#preload h2").html(xhr.message);
+
+                        });
+                return false;
+            });
+            $(".sched").click(function () {
+                $.post("{% url "sch" rasp.id %}",
+                        {
+                            type: "SCHEDULE",
+                            sch_id: $(this).attr("id"),
+                            action: $(this).attr("name"),  //The name of action which is passed to the view
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        function (data, status) {
                             {#                            alert("Data: " + data + "\nStatus: " + status);#}
                             $("#result").val(data + " = " + status)
                         })
-                        .fail(function () {
-                            alert("error");
+                        .fail(function (xhr, ajaxOptions, thrownError) {
+                            $("div#preload h2").html(xhr.message);
+
                         });
                 return false;
             });
@@ -31,34 +51,68 @@
         .active {
             color: green;
         }
+
+        .left {
+            float: left;
+        }
+
+        .w50 {
+            width: 50%;
+        }
+
     </style>
 </head>
 <body>
 <h1>{{ rasp.name }}</h1>
 
 <h1>Все расписания - внезависимости от Pi</h1>
-<ul>
-    {% for sch in sch_all %}
-        <li>
-            <div style="white-space: nowrap;">
-                {{ sch.name }}
-                <table style="border:1px solid  gray; border-collapse: collapse" >
-                    <tr>
-                        <td style="border-right: 1px solid gray">Статус неопределен</td>
-                        <td style="border-right: 1px solid gray"><input type="button" class="sched" id="sch_{{ sch.id }}" name="start" value="Старт"/></td>
-                        <td><input type="button" class="sched" id="sch_{{ sch.id }}" name="stop" value="Стоп"/></td>
-                    </tr>
-                </table>
-            </div>
 
-            <ol>
-                {% for act in sch.actions.all %}
-                    <li><h5>{{ act.name }}</h5></li>
-                {% endfor %}
-            </ol>
-        </li>
-    {% endfor %}
-</ul>
+<div id="content" style="width:100%">
+    <div id="menu" class="left w50">{% comment %}style="background-color:#FFD700;height:200px;width:400px;float:left;" {% endcomment %}
+        <ul>
+            {% for sch in sch_all %}
+                <li>
+                    {#                    <div style="white-space: nowrap;">#}
+                    {{ sch.name }}
+                    <table style="border:1px solid  gray; border-collapse: collapse">
+                        <tr>
+                            {% if sch.enabled == False %}
+                                <td style="border-right: 1px solid gray">Выкл</td>
+                            {% elif sch.enabled == True %}
+                                <td style="border-right: 1px solid gray">Вкл</td>
+                            {% endif %}
+                            {% if sch.status == "" %}
+                                <td style="border-right: 1px solid gray">Не определен</td>
+                            {% elif sch.status == "R" %}
+                                <td style="border-right: 1px solid gray">Работает</td>
+                            {% elif sch.status == "S" %}
+                                <td style="border-right: 1px solid gray">Остановлено</td>
+                            {% endif %}
+                            <td style="border-right: 1px solid gray"><input type="button" class="sched"
+                                                                            id="{{ sch.id }}" name="start"
+                                                                            value="Старт"/></td>
+                            <td><input type="button" class="sched" id="{{ sch.id }}" name="stop" value="Стоп"/></td>
+                        </tr>
+                    </table>
+                    {#                    </div>#}
+
+                    <ol>
+                        {% for act in sch.actions.all %}
+                            <li><h5>{{ act.name }}</h5></li>
+                        {% endfor %}
+                    </ol>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div  class="left w50"> {% comment %}style="background-color:#EEEEEE;height:200px;width:500px;float:left;"{% endcomment %}
+        <h2>Active schedules</h2>
+    </div>
+</div>
+
+<br/>
+
+<div id="preload"></div>
 
 
 <br/>
@@ -83,7 +137,6 @@
     </li>
 
 </ul>
-
 
 </body>
 </html>

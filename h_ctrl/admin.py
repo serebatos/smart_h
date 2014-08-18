@@ -12,6 +12,7 @@ class ActionSchedulesInline(admin.TabularInline):
 class ScheduleAdmin(admin.ModelAdmin):
     inlines = (ActionSchedulesInline,)
     exclude = ["actions"]
+    readonly_fields = ["total_runs","last_run","status"]
 # # fields = (("start_time","end_time"),"certain_date")
 #     list_filter = ['actions']
 #     filter_horizontal = ['actions']

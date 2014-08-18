@@ -8,4 +8,5 @@ urlpatterns = patterns('',
     url(r'^(?P<pi_id>\d+)/$', views.detail, name='detail'),
     url(r'^(?P<pi_id>\d+)/do/$', views.command, name='command'),
     url(r'^(?P<pi_id>\d+)/ajax/$', views.ajax, name='ajax'),
+    url(r'^(?P<pi_id>\d+)/sch/$', views.sch, name='sch'),
 )
