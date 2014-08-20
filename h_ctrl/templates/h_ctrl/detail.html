@@ -68,7 +68,8 @@
 <h1>Все расписания - внезависимости от Pi</h1>
 
 <div id="content" style="width:100%">
-    <div id="menu" class="left w50">{% comment %}style="background-color:#FFD700;height:200px;width:400px;float:left;" {% endcomment %}
+    <div id="menu"
+         class="left w50">{% comment %}style="background-color:#FFD700;height:200px;width:400px;float:left;" {% endcomment %}
         <ul>
             {% for sch in sch_all %}
                 <li>
@@ -105,8 +106,17 @@
             {% endfor %}
         </ul>
     </div>
-    <div  class="left w50"> {% comment %}style="background-color:#EEEEEE;height:200px;width:500px;float:left;"{% endcomment %}
+    <div class="left w50"> {% comment %}style="background-color:#EEEEEE;height:200px;width:500px;float:left;"{% endcomment %}
         <h2>Active schedules</h2>
+        {% for sch_act in sch_act_all %}
+            <div>{{ sch_act.schedule.name }}
+                <ul>
+                    {% for a in  sch_act.details.actions  %}
+                    <li>{{ a.status }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
     </div>
 </div>
 

@@ -10,6 +10,8 @@ from models import Pi
 from subprocess import call
 
 # Create your views here.
+STATUS_RUNNING = 'R'
+STATUS_STOPPED = 'S'
 
 ACT_TYPE_SINGLE = "SINGLE"
 ACT_TYPE_SCHEDULE = "SCHEDULE"
@@ -28,15 +30,17 @@ def detail(request, pi_id):
         sch_all = Schedule.objects.all()
         sch_active_list = list()
         be = Backend()
+
         if len(be.schedDict) > 0:
             for s in sch_all:
                 print("Searching")
                 sch_details = be.schedDict.get(s.id)
                 if not sch_details == None:
                     sch_active_list.append({"schedule": s, "details": sch_details})
-                    print("Appended")
+                    print("Appended,"),
+                    print sch_details
         else:
-            print("Empty")
+            print("Empty!!!")
 
     except Pi.DoesNotExist:
         raise Http404
@@ -58,18 +62,33 @@ def sch(request, pi_id):
     print repr(request.POST)
     action = request.POST['action']
     schedule = Schedule.objects.get(pk=sch_id)
+    print "Before action '%s'" % action
+    be = Backend()
+    print "Backend stat size: %s" % len(be.schedDict)
+
     if action == "stop":
-        b = False
+        status = STATUS_STOPPED
     elif action == "start":
-        b = True
-        schedule.enabled = b
-        schedule.save()
-        print("Saved")
-        be = Backend()
-        print "Backend stat size: %s" % len(be.schedDict)
+        status = STATUS_RUNNING
         be.exec_schedule(schedule)
 
-    message = "Schedule(" + sch_id + ") is %s" % ( "deactivated" if b == False else "activated")
+
+    #todo:cancel currently running schedule and start new
+    schedule_current=Schedule.objects.filter(status= STATUS_RUNNING)
+    if len(schedule_current)>0:
+        print "Got running. %s" % schedule_current[0]
+        schedule_current[0].status=STATUS_STOPPED
+        schedule_current[0].save()
+        print "Forcing stop scheduler"
+        be.force_stop()
+
+    print "Status switched to: %s" % status
+    schedule.status=status
+    schedule.save()
+    print("Saved")
+
+
+    message = "Schedule(" + sch_id + ") is %s" % ( "started" if status == STATUS_RUNNING else "stopped")
     print("Message:" + message)
     return HttpResponse(message)
 
