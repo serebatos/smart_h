@@ -8,6 +8,7 @@ import pickle
 import sched
 import time
 import datetime
+from subprocess import call
 from django.utils import timezone
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smart_h.settings")
@@ -93,50 +94,65 @@ class Backend(object):
             cls.instance = super(Backend, cls).__new__(cls)
         return cls.instance
 
-    def exec_action(self, actionschedules, prev_actionschedules):
-        if actionschedules.skip == False:
+    def exec_event(self, actionschedules, prev_actionschedules):
+        if actionschedules.skip == False and actionschedules.schedule.enabled == True:
             print "%s" % time.time(), "Running action:%s" % actionschedules.action.name
+            self.exec_action(actionschedules.action)
+
             actionschedules.status = 'R'
             actionschedules.save()
             print("Backend. Status saved")
+
             if prev_actionschedules != None:
                 prev_actionschedules.status = 'S'
                 prev_actionschedules.save()
         else:
             print unicode("Skipping action:{}".format(actionschedules.action.name))
-#todo: может быть откекстендиться от шедулера и иметь активным только одно расписание... это избавит от необходимости отслеживать
-# и управлять активными расписаниями. как сделать,чтобы после перезапуска распбери все работало и как сделать повторение на след день,
-# как вариант последний шаг заново инициализирует на следующий день шедулер
+            #todo: как сделать,чтобы после перезапуска распбери все работало и как сделать повторение на след день,
+            # как вариант последний шаг заново инициализирует на следующий день шедулер
+    def exec_action(self, action):
+        actObj = Action.objects.get(pk=action.id)
+        command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % actObj.pin, "%s" % actObj.cmd_code]
+        res = call(command)
+
     def exec_schedule(self, schedule):
         db_schedule = Schedule.objects.get(pk=schedule.id)
         if db_schedule.enabled == True:
-            prev_act_sch = None #previous action which status should be changed to "Completed'
+            prev_act_sch = None  #previous action which status should be changed to "Completed'
             count = 0
-            act_list=list()
+            act_list = list()
             self.scheduler = sched.scheduler(time.time, time.sleep)
             self.evt_list = act_list
+            dt = datetime.datetime.now()
+
             for act_sched in db_schedule.actionschedules_set.all():
-                print "Action '%s' is being putted in queue." % act_sched.action.name, " Start time is %s" % act_sched.start_time
-                dt = datetime.datetime.now()
+                print "Action '%s' is being putted in queue." % act_sched.action.name, "Start time is %s" % act_sched.start_time
+
                 # time_float = (act_sched.start_time - newTime.utcfromtimestamp(14400)).total_seconds()
-                tcur=time.time()
-                tt=  time.mktime((dt.year,dt.month,dt.day,act_sched.start_time.hour,act_sched.start_time.minute,act_sched.start_time.second,dt.weekday(),dt.timetuple().tm_yday,-1))
-                # print "time: %s" % tt
-                if tcur < tt:
-                    event_sched= self.scheduler.enterabs(tt, 1, self.exec_action, (act_sched, prev_act_sch))
+                tcur = time.time()
+                tt = time.mktime((dt.year, dt.month, dt.day, act_sched.start_time.hour, act_sched.start_time.minute,
+                                  act_sched.start_time.second, dt.weekday(), dt.timetuple().tm_yday, -1))
+                #todo: add planned start time to act_sched
+                if tcur > tt:
+                    dt = dt.combine(dt.date(),act_sched.start_time)
+                    dtstart = dt + datetime.timedelta(days=1)
+                    tstart =  time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
+                                  dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
+                    print "Backend. Start time is in the past. Planning this action(%s)" % act_sched.action.name, "on %s" % dtstart
+                    event_sched = self.scheduler.enterabs(tstart, 1, self.exec_event, (act_sched, prev_act_sch))
                     self.evt_list.append(event_sched)
                     prev_act_sch = act_sched
                     count += 1
-                else:
-                    print "Backend. Start time is in the past. Skipping this action '%s'" % act_sched.action.name
-            if count >0:
-                self.schedDict[act_sched.schedule.id]={"scheduler": self.scheduler,"actions": self.evt_list}
+            if count > 0:
+                self.schedDict[act_sched.schedule.id] = {"scheduler": self.scheduler, "actions": self.evt_list}
                 print "Schedule '%s' is planned." % db_schedule.name, "Total actions %s" % str(count)
                 print("...")
+                # single thread version is not suitable for async calls
                 # scheduler.run()
                 # Start a thread to run the events
                 t = threading.Thread(target=self.scheduler.run)
                 t.start()
+                #anoter wat to play actions
                 # threading.Timer()
             else:
                 print "Nothing to plan..."
@@ -144,14 +160,22 @@ class Backend(object):
             print "Schedule '%s' is not active'" % db_schedule.name
         print("exit")
 
+    def stop_schedule(self, schedule):
+        self.force_stop()
+        for act_sched in schedule.actionschedules_set.all():
+            print "Turning off %s pin" % act_sched.action.pin
+            # command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % act_sched.action.pin, "0"]
+            # res = call(command)
+        print("Backend.Cancelled")
+
     def force_stop(self):
         #неверно так прерывать, надо после этого пробежаться по всем шагам и выполнить их
-        if self.evt_list !=None and self.scheduler !=None:
+        if self.evt_list != None and self.scheduler != None:
             for e in self.evt_list:
                 print "Cancelling"
                 self.scheduler.cancel(e)
-        print("Backend.Cancelled")
-        #also need to call script to reset pin states
+
+                #also need to call script to reset pin states
 
 
 if __name__ == "__main__":
@@ -167,10 +191,11 @@ if __name__ == "__main__":
     b = Backend()
     s = Schedule.objects.get(pk=1)
     print "b={}".format(str(b.c))
-    b.exec_schedule(s)
+    # b.exec_schedule(s)
     print "statDict len:%s" % len(b.schedDict)
     val = b.schedDict.get(s.id)
-    print val.get("scheduler").queue
+    # print val.get("scheduler").queue
+
     # print "Now: %s" % time.time(), "Datetime:%s" % s.last_run
     #
     # newTime = timezone.localtime(s.last_run)
@@ -178,7 +203,10 @@ if __name__ == "__main__":
     # print(strTime)
     # newTime2 = time.strptime(strTime, '%Y-%m-%d %H:%M:%S.%f')
     #
-    # dt = datetime.datetime.now()
+    dt = datetime.datetime.now()
+    print dt
+    dt2=datetime.datetime.now() + datetime.timedelta(days=12)
+    print dt2
     # print "time now: %s" % time.time()
     # print "from timestamp: %s" % datetime.datetime.fromtimestamp(1408368379.85)
     # print "dt: %s" % dt

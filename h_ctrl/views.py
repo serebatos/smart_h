@@ -8,10 +8,12 @@ from backend import Backend
 from h_ctrl.models import Action, Schedule
 from models import Pi
 from subprocess import call
+from django.db.models import Q
 
 # Create your views here.
 STATUS_RUNNING = 'R'
 STATUS_STOPPED = 'S'
+STATUS_PLANNED = 'P'
 
 ACT_TYPE_SINGLE = "SINGLE"
 ACT_TYPE_SCHEDULE = "SCHEDULE"
@@ -44,7 +46,7 @@ def detail(request, pi_id):
 
     except Pi.DoesNotExist:
         raise Http404
-    return render(request, "h_ctrl/detail.html", {'rasp': p, 'sch_all': sch_all,'sch_act_all':sch_active_list})
+    return render(request, "h_ctrl/detail.html", {'rasp': p, 'sch_all': sch_all, 'sch_act_all': sch_active_list})
 
 
 def command(request, pi_id):
@@ -68,25 +70,22 @@ def sch(request, pi_id):
 
     if action == "stop":
         status = STATUS_STOPPED
+        #cancel currently running schedule and start new
+        schedule_current = Schedule.objects.filter(Q(status=STATUS_RUNNING) | Q(status=STATUS_PLANNED))
+        if len(schedule_current) > 0:
+            print "Got running schedule '%s'" % schedule_current[0]
+            schedule_current[0].status = STATUS_STOPPED
+            schedule_current[0].save()
+            print "Forcing stop scheduler"
+            be.stop_schedule(schedule_current[0])
     elif action == "start":
         status = STATUS_RUNNING
         be.exec_schedule(schedule)
 
-
-    #todo:cancel currently running schedule and start new
-    schedule_current=Schedule.objects.filter(status= STATUS_RUNNING)
-    if len(schedule_current)>0:
-        print "Got running. %s" % schedule_current[0]
-        schedule_current[0].status=STATUS_STOPPED
-        schedule_current[0].save()
-        print "Forcing stop scheduler"
-        be.force_stop()
-
     print "Status switched to: %s" % status
-    schedule.status=status
+    schedule.status = status
     schedule.save()
     print("Saved")
-
 
     message = "Schedule(" + sch_id + ") is %s" % ( "started" if status == STATUS_RUNNING else "stopped")
     print("Message:" + message)
@@ -102,7 +101,6 @@ def ajax(request, pi_id):
             action = request.POST['action']
             if action == 'turn_on':
                 call(["python", "/home/pi/dev/scripts/led_blink.py"])
-
             try:
                 actObj = get_object_or_404(Action, name=action)
                 command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % actObj.pin, "%s" % actObj.cmd_code]
