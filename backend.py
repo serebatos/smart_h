@@ -110,10 +110,14 @@ class Backend(object):
             print unicode("Skipping action:{}".format(actionschedules.action.name))
             #todo: как сделать,чтобы после перезапуска распбери все работало и как сделать повторение на след день,
             # как вариант последний шаг заново инициализирует на следующий день шедулер
+        db_schedule = Schedule.objects.get(pk= actionschedules.schedule.id)
+        db_schedule.last_run= datetime.datetime.now()
+        db_schedule.save()
+
     def exec_action(self, action):
         actObj = Action.objects.get(pk=action.id)
-        command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % actObj.pin, "%s" % actObj.cmd_code]
-        res = call(command)
+        # command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % actObj.pin, "%s" % actObj.cmd_code]
+        # res = call(command)
 
     def exec_schedule(self, schedule):
         db_schedule = Schedule.objects.get(pk=schedule.id)
@@ -136,13 +140,15 @@ class Backend(object):
                 if tcur > tt:
                     dt = dt.combine(dt.date(),act_sched.start_time)
                     dtstart = dt + datetime.timedelta(days=1)
-                    tstart =  time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
+                    tt =  time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
                                   dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
                     print "Backend. Start time is in the past. Planning this action(%s)" % act_sched.action.name, "on %s" % dtstart
-                    event_sched = self.scheduler.enterabs(tstart, 1, self.exec_event, (act_sched, prev_act_sch))
-                    self.evt_list.append(event_sched)
-                    prev_act_sch = act_sched
-                    count += 1
+                # planned event
+                event_sched = self.scheduler.enterabs(tt, 1, self.exec_event, (act_sched, prev_act_sch))
+                # collected to list
+                self.evt_list.append(event_sched)
+                prev_act_sch = act_sched
+                count += 1
             if count > 0:
                 self.schedDict[act_sched.schedule.id] = {"scheduler": self.scheduler, "actions": self.evt_list}
                 print "Schedule '%s' is planned." % db_schedule.name, "Total actions %s" % str(count)
