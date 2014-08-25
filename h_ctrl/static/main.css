@@ -1,0 +1,15 @@
+ .inactive {
+            color: red;
+        }
+
+        .active {
+            color: green;
+        }
+
+        .left {
+            float: left;
+        }
+
+        .w50 {
+            width: 50%;
+        }

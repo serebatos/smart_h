@@ -2,151 +2,88 @@
 
 <head>
     <script src="{{ STATIC_URL }}jquery-1.11.1.js"></script>
-    <script type="text/javascript">
-        $(document).ready(function () {
-            $("#result").value = "No actions"
-            $("div#preload h2").html("Some Text Here")
-            $(".test").click(function () {
-                $.post("{% url "ajax" rasp.id %}",
-                        {
-                            type: "SINGLE",
-                            action: $(this).attr("name"),  //The name of action which is passed to the view
-                            csrfmiddlewaretoken: '{{ csrf_token }}'
-                        },
-                        function (data, status) {
-                            alert("Data: " + data + "\nStatus: " + status);
-                            $("#result").val(data + " = " + status)
-                        })
-                        .fail(function (xhr, ajaxOptions, thrownError) {
-                            $("div#preload h2").html(xhr.message);
 
-                        });
-                return false;
-            });
-            $(".sched").click(function () {
-                $.post("{% url "sch" rasp.id %}",
-                        {
-                            type: "SCHEDULE",
-                            sch_id: $(this).attr("id"),
-                            action: $(this).attr("name"),  //The name of action which is passed to the view
-                            csrfmiddlewaretoken: '{{ csrf_token }}'
-                        },
-                        function (data, status) {
-                            {#                            alert("Data: " + data + "\nStatus: " + status);#}
-                            $("#result").val(data + " = " + status)
-                        })
-                        .fail(function (xhr, ajaxOptions, thrownError) {
-                            $("div#preload h2").html(xhr.message);
-
-                        });
-                return false;
-            });
-        });
-    </script>
-    <style>
-        .inactive {
-            color: red;
-        }
-
-        .active {
-            color: green;
-        }
-
-        .left {
-            float: left;
-        }
-
-        .w50 {
-            width: 50%;
-        }
-
-    </style>
+    <link rel="stylesheet" href="{{ STATIC_URL }}main.css" type="text/css">
 </head>
 <body>
-<h1>{{ rasp.name }}</h1>
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td style="align-content: flex-start; " colspan="3"><h3
+                style="color: rgb(9, 46, 32);display: block;font-family: 'Trebuchet MS', sans-serif;font-size: 26px;font-style: normal;font-variant: normal;font-weight: normal;height: 30px;">
+            Управление домом({{ rasp.name }})
+        </h3></td>
+    </tr>
+    <tr>
+        <td style="background: #417690;
+color: #ffc;" colspan="3"><h1>Задачи:</h1></td>
+    </tr>
 
-<h1>Все расписания - внезависимости от Pi</h1>
-
-<div id="content" style="width:100%">
-    <div id="menu"
-         class="left w50">{% comment %}style="background-color:#FFD700;height:200px;width:400px;float:left;" {% endcomment %}
-        <ul>
-            {% for sch in sch_all %}
-                <li>
-                    {#                    <div style="white-space: nowrap;">#}
-                    {{ sch.name }}
-                    <table style="border:1px solid  gray; border-collapse: collapse">
-                        <tr>
-                            {% if sch.enabled == False %}
-                                <td style="border-right: 1px solid gray">Выкл</td>
-                            {% elif sch.enabled == True %}
-                                <td style="border-right: 1px solid gray">Вкл</td>
-                            {% endif %}
-                            {% if sch.status == "" %}
-                                <td style="border-right: 1px solid gray">Не определен</td>
-                            {% elif sch.status == "R" %}
-                                <td style="border-right: 1px solid gray">Работает</td>
-                            {% elif sch.status == "S" %}
-                                <td style="border-right: 1px solid gray">Остановлено</td>
-                            {% endif %}
-                            <td style="border-right: 1px solid gray"><input type="button" class="sched"
-                                                                            id="{{ sch.id }}" name="start"
-                                                                            value="Старт"/></td>
-                            <td><input type="button" class="sched" id="{{ sch.id }}" name="stop" value="Стоп"/></td>
+    {% for row in ret_list %}
+        <tr>
+            {% for cell in row %}
+                <td style="border: solid 1px grey;width: 30%;">
+                    <table>
+                        <tr valign="middle">
+                            <td>
+                                <h1 style="color: #666;font-family: 'Lucida Grande',Verdana,Arial,sans-serif;">{{ cell.name }}:</h1>
+                            </td>
+                            <td><label
+                                    style="font-weight: normal !important;color: #666;font-size: 26px;">Остановлен</label>
+                            </td>
+                            <td><input type="button" value="Старт"/>
+                            </td>
+                            <td><input type="button" value="Стоп"/>
+                            </td>
                         </tr>
                     </table>
-                    {#                    </div>#}
 
-                    <ol>
-                        {% for act in sch.actions.all %}
-                            <li><h5>{{ act.name }}</h5></li>
+                    <table style="padding-left: 5px;padding-right: 5px; " cellspacing="0" width="100%" border="0">
+                        <thead>
+                        <tr>
+                            <th align="centre" style="border: solid lightblue 1px;border-right: none">Действие</th>
+                            <th align="centre" style="border: solid lightblue 1px;border-right: none">AJAX</th>
+                            <th align="centre" style="border: solid lightblue 1px">Статус</th>
+                            <th align="centre" style="border: solid lightblue 1px">Пропуск</th>
+                            <th align="centre" style="border: solid lightblue 1px">Коммент</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for actsched in cell.actionschedules_set.all %}
+                            <tr align="center">
+                                <td style="border: solid lightblue 1px; border-top: none;border-right: none">
+                                    <input type="button" value="{{ actsched.action.name }}" style="width: 100%"/>
+                                </td>
+                                <td style="border: solid lightblue 1px; border-top: none; border-right: none">
+                                    <label style="color: green">--</label>
+                                </td>
+                                <td style="border: solid lightblue 1px; border-top: none">
+                                    <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.status }}</label>
+                                </td>
+                                <td style="border: solid lightblue 1px; border-top: none">
+                                    <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.skip }}</label>
+                                </td>
+                                <td style="border: solid lightblue 1px; border-top: none">
+                                    <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.comment }}</label>
+                                </td>
+                            </tr>
                         {% endfor %}
-                    </ol>
-                </li>
+                        </tbody>
+                    </table>
+                    <table style="padding-top: 20px" width="100%">
+                        <tr>
+                            <td colspan="3">Last AJAX result</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3"><input type="text" value="Test result" style="width: 100%"/></td>
+                        </tr>
+                    </table>
+                </td>
             {% endfor %}
-        </ul>
-    </div>
-    <div class="left w50"> {% comment %}style="background-color:#EEEEEE;height:200px;width:500px;float:left;"{% endcomment %}
-        <h2>Active schedules</h2>
-        {% for sch_act in sch_act_all %}
-            <div>{{ sch_act.schedule.name }}
-                <ul>
-                    {% for a in  sch_act.details.actions  %}
-                    <li>{{ a.status }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endfor %}
-    </div>
-</div>
-
-<br/>
-
-<div id="preload"></div>
-
-
-<br/>
-
-<h1>Actions</h1>
-<ul>
-    {% for action in rasp.action_set.all %}
-        {#        <form id="ActForm" action="" method="POST">#}
-        {#            {% csrf_token %}#}
-        {#            <li>#}
-        {#                <input type="submit" value="{{ action.name }}"/>#}
-        {#            </li>#}
-        {#        </form>#}
-        <li>
-            <input type="button" id="action" name="{{ action.name }}" value="{{ action.name }}" class="test"
-                   style="width:200px"/>
-
-        </li>
+            {% comment %}<td style="border: solid 1px grey;border-left-width: 0;width: 30%">2</td>
+            <td style="border: solid 1px grey;border-left-width: 0;width: 30%">3</td>{% endcomment %}
+        </tr>
     {% endfor %}
-    <li>
-        <h4>Result:<input id="result" type="text" readonly="true" value="empty" width="400px"/></h4>
-    </li>
-
-</ul>
+</table>
 
 </body>
 </html>

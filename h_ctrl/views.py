@@ -31,22 +31,35 @@ def detail(request, pi_id):
         p = get_object_or_404(Pi, pk=pi_id)
         sch_all = Schedule.objects.all()
         sch_active_list = list()
+        ret_list = list()
+        ret_list_row = list()
         be = Backend()
 
-        if len(be.schedDict) > 0:
-            for s in sch_all:
-                print("Searching")
-                sch_details = be.schedDict.get(s.id)
-                if not sch_details == None:
-                    sch_active_list.append({"schedule": s, "details": sch_details})
-                    print("Appended,"),
-                    print sch_details
-        else:
-            print("Empty!!!")
+        cur_line = 1
+        idx_line = 0
+        # if len(be.schedDict) > 0:
+        for s in sch_all:
+            idx_line = cur_line % 3
+            ret_list_row.append(s)
+            if idx_line == 0:
+                ret_list.append(ret_list_row)
+                ret_list_row=list()
+            cur_line += 1
+        if len(ret_list_row)>0:
+            ret_list.append(ret_list_row)
+            # print("Searching")
+            # sch_details = be.schedDict.get(s.id)
+            # if not sch_details == None:
+            #     sch_active_list.append({"schedule": s, "details": sch_details})
+            #     print("Appended,"),
+            #     print sch_details
+                # else:
+                #     print("Empty!!!")
+
 
     except Pi.DoesNotExist:
         raise Http404
-    return render(request, "h_ctrl/detail.html", {'rasp': p, 'sch_all': sch_all, 'sch_act_all': sch_active_list})
+    return render(request, "h_ctrl/detail.html", {'rasp': p, 'ret_list':ret_list})
 
 
 def command(request, pi_id):

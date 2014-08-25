@@ -291,3 +291,9 @@ if __name__ == "__main__":
     #         # Likewise, self.wfile is a file-like object used to write back
     #         # to the client
     #         self.wfile.write(self.data.upper())
+
+    i = 5
+    den=3
+    for c in range(0,i):
+        print "c=%s"% c,"%s" %c, "%", "%s" %den, "=",
+        print  c%den
