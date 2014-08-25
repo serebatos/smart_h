@@ -1,6 +1,12 @@
 # coding=utf-8
 import threading
 
+ACT_WAITING = 'W'
+
+ACT_STOPPED = 'S'
+
+ACT_RUNNING = 'R'
+
 __author__ = 'Serebatos'
 import SocketServer
 import os
@@ -94,30 +100,37 @@ class Backend(object):
             cls.instance = super(Backend, cls).__new__(cls)
         return cls.instance
 
+
+
+
     def exec_event(self, actionschedules, prev_actionschedules):
         if actionschedules.skip == False and actionschedules.schedule.enabled == True:
             print "%s" % time.time(), "Running action:%s" % actionschedules.action.name
             self.exec_action(actionschedules.action)
 
-            actionschedules.status = 'R'
+            actionschedules.status = ACT_RUNNING
             actionschedules.save()
             print("Backend. Status saved")
 
             if prev_actionschedules != None:
-                prev_actionschedules.status = 'S'
+                prev_actionschedules.status = ACT_STOPPED
                 prev_actionschedules.save()
         else:
             print unicode("Skipping action:{}".format(actionschedules.action.name))
             #todo: как сделать,чтобы после перезапуска распбери все работало и как сделать повторение на след день,
             # как вариант последний шаг заново инициализирует на следующий день шедулер
-        db_schedule = Schedule.objects.get(pk= actionschedules.schedule.id)
-        db_schedule.last_run= datetime.datetime.now()
+        db_schedule = Schedule.objects.get(pk=actionschedules.schedule.id)
+        db_schedule.last_run = datetime.datetime.now()
         db_schedule.save()
+
+
 
     def exec_action(self, action):
         actObj = Action.objects.get(pk=action.id)
         # command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % actObj.pin, "%s" % actObj.cmd_code]
         # res = call(command)
+
+
 
     def exec_schedule(self, schedule):
         db_schedule = Schedule.objects.get(pk=schedule.id)
@@ -138,13 +151,18 @@ class Backend(object):
                                   act_sched.start_time.second, dt.weekday(), dt.timetuple().tm_yday, -1))
                 #todo: add planned start time to act_sched
                 if tcur > tt:
-                    dt = dt.combine(dt.date(),act_sched.start_time)
+                    dt = dt.combine(dt.date(), act_sched.start_time)
                     dtstart = dt + datetime.timedelta(days=1)
-                    tt =  time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
-                                  dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
+                    tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
+                                      dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
                     print "Backend. Start time is in the past. Planning this action(%s)" % act_sched.action.name, "on %s" % dtstart
                 # planned event
                 event_sched = self.scheduler.enterabs(tt, 1, self.exec_event, (act_sched, prev_act_sch))
+
+                # Статус в "Ожидание" выполнения
+                act_sched.status= ACT_WAITING
+                act_sched.save()
+
                 # collected to list
                 self.evt_list.append(event_sched)
                 prev_act_sch = act_sched
@@ -164,16 +182,24 @@ class Backend(object):
                 print "Nothing to plan..."
         else:
             print "Schedule '%s' is not active'" % db_schedule.name
-        print("exit")
+        print("Exit from schedule execution method")
+
+
+
+
 
     def stop_schedule(self, schedule):
+        # Отменяем все, что в Планировщике
         self.force_stop()
+        # Поочереди отменяем все, что в статусе "Ожидание" или "В работе" и выключаем ноги
         for act_sched in schedule.actionschedules_set.all():
-            print "Turning off %s pin" % act_sched.action.pin
-            # command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % act_sched.action.pin, "0"]
-            # res = call(command)
+            self.stop_actsched(act_sched)
         print("Backend.Cancelled")
 
+
+
+
+    # Отмена задач Планировщика python
     def force_stop(self):
         #неверно так прерывать, надо после этого пробежаться по всем шагам и выполнить их
         if self.evt_list != None and self.scheduler != None:
@@ -181,7 +207,29 @@ class Backend(object):
                 print "Cancelling"
                 self.scheduler.cancel(e)
 
-                #also need to call script to reset pin states
+
+
+
+    # Выключаем ногу, которая в расписании, сообщаем в лог, и статус меняем с "ожидания" на "остановлено"
+    def stop_actsched(self, act_sched):
+        if act_sched is not None:
+            print "Turning off %s pin" % act_sched.action.pin
+            command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % act_sched.action.pin, "0"]
+            self.do_shell_cmd(command)
+
+
+
+
+    #todo: Добавить проверку, что мы в *nix системе, а дальше просто вызов, чтобы при диплоях каждый раз код не коментить
+    def do_shell_cmd(self,cmd_with_params):
+        print("Command is executing")
+        res = call(cmd_with_params)
+
+
+
+
+
+
 
 
 if __name__ == "__main__":
@@ -211,7 +259,7 @@ if __name__ == "__main__":
     #
     dt = datetime.datetime.now()
     print dt
-    dt2=datetime.datetime.now() + datetime.timedelta(days=12)
+    dt2 = datetime.datetime.now() + datetime.timedelta(days=12)
     print dt2
     # print "time now: %s" % time.time()
     # print "from timestamp: %s" % datetime.datetime.fromtimestamp(1408368379.85)
