@@ -14,25 +14,27 @@
         </h3></td>
     </tr>
     <tr>
-        <td style="background: #417690;
-color: #ffc;" colspan="3"><h1>Задачи:</h1></td>
+        <td style="background: #417690;color: #ffc; padding-left: 5px; " colspan=3"><h1>Задачи:</h1></td>
     </tr>
 
     {% for row in ret_list %}
         <tr>
             {% for cell in row %}
-                <td style="border: solid 1px grey;width: 30%;">
-                    <table>
+                <td style="border: solid 1px grey;width: 33%;">
+                    <table width="100%" border="1">
                         <tr valign="middle">
-                            <td>
-                                <h1 style="color: #666;font-family: 'Lucida Grande',Verdana,Arial,sans-serif;">{{ cell.name }}:</h1>
+                            <td rowspan="2" width="50%">
+                                <h1 style="color: #666;font-family: 'Lucida Grande',Verdana,Arial,sans-serif;font-size: 18px;">{{ cell.name }}:</h1>
+
                             </td>
-                            <td><label
-                                    style="font-weight: normal !important;color: #666;font-size: 26px;">Остановлен</label>
+                            <td width="50%">Статус:<label
+                                    style="font-weight: normal !important;color: #666;font-size: 16px;">Остановлен</label>
                             </td>
-                            <td><input type="button" value="Старт"/>
-                            </td>
-                            <td><input type="button" value="Стоп"/>
+                        </tr>
+                        <tr valign="middle">
+                            <td style="vertical-align: bottom">
+                                    <input type="button" value="Старт" style="height: 100%"/>
+                                    <input type="button" value="Стоп"  style="height: 100%"/>
                             </td>
                         </tr>
                     </table>
@@ -79,8 +81,6 @@ color: #ffc;" colspan="3"><h1>Задачи:</h1></td>
                     </table>
                 </td>
             {% endfor %}
-            {% comment %}<td style="border: solid 1px grey;border-left-width: 0;width: 30%">2</td>
-            <td style="border: solid 1px grey;border-left-width: 0;width: 30%">3</td>{% endcomment %}
         </tr>
     {% endfor %}
 </table>
