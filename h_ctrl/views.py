@@ -18,6 +18,9 @@ STATUS_PLANNED = 'P'
 ACT_TYPE_SINGLE = "SINGLE"
 ACT_TYPE_SCHEDULE = "SCHEDULE"
 
+RESULT_OK = 0
+RESULT_BAD = -1
+
 
 def index(request):
     pi_list = Pi.objects.all()
@@ -43,23 +46,23 @@ def detail(request, pi_id):
             ret_list_row.append(s)
             if idx_line == 0:
                 ret_list.append(ret_list_row)
-                ret_list_row=list()
+                ret_list_row = list()
             cur_line += 1
-        if len(ret_list_row)>0:
+        if len(ret_list_row) > 0:
             ret_list.append(ret_list_row)
             # print("Searching")
             # sch_details = be.schedDict.get(s.id)
             # if not sch_details == None:
-            #     sch_active_list.append({"schedule": s, "details": sch_details})
-            #     print("Appended,"),
+            # sch_active_list.append({"schedule": s, "details": sch_details})
+            # print("Appended,"),
             #     print sch_details
-                # else:
-                #     print("Empty!!!")
+            # else:
+            #     print("Empty!!!")
 
 
     except Pi.DoesNotExist:
         raise Http404
-    return render(request, "h_ctrl/detail.html", {'rasp': p, 'ret_list':ret_list})
+    return render(request, "h_ctrl/detail.html", {'rasp': p, 'ret_list': ret_list})
 
 
 def command(request, pi_id):
@@ -69,6 +72,19 @@ def command(request, pi_id):
         message = 'You submitted an empty form. %s' % request
 
     return HttpResponse(message)
+
+
+def start_schedule(request, pi_id):
+    # try:
+        # schedule = get_object_or_404(Schedule, id=schedule_id)
+        # schedule.status = STATUS_PLANNED #
+        # # save to DB
+        # schedule.save()
+    print("ok")
+    messsage = {"result": RESULT_OK}
+    # except Schedule.DoesNotExist:
+    #     raise Http404
+    return HttpResponse(messsage)
 
 
 def sch(request, pi_id):
@@ -83,7 +99,7 @@ def sch(request, pi_id):
 
     if action == "stop":
         status = STATUS_STOPPED
-        #cancel currently running schedule and start new
+        # cancel currently running schedule and start new
         schedule_current = Schedule.objects.filter(Q(status=STATUS_RUNNING) | Q(status=STATUS_PLANNED))
         if len(schedule_current) > 0:
             print "Got running schedule '%s'" % schedule_current[0]

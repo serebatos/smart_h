@@ -2,6 +2,85 @@
 
 <head>
     <script src="{{ STATIC_URL }}jquery-1.11.1.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            {% comment %} $("#result").value = "No actions"
+         $("div#preload h2").html("Some Text Here")
+         $(".test").click(function () {
+             $.post("{% url "ajax" rasp.id %}",
+                     {
+                         type: "SINGLE",
+                         action: $(this).attr("name"),  //The name of action which is passed to the view
+                         csrfmiddlewaretoken: '{{ csrf_token }}'
+                     },
+                     function (data, status) {
+                         alert("Data: " + data + "\nStatus: " + status);
+                         $("#result").val(data + " = " + status)
+                     })
+                     .fail(function (xhr, ajaxOptions, thrownError) {
+                         $("div#preload h2").html(xhr.message);
+
+                     });
+             return false;
+         });
+         $(".sched").click(function () {
+             $.post("{% url "sch" rasp.id %}",
+                     {
+                         type: "SCHEDULE",
+                         sch_id: $(this).attr("id"),
+                         action: $(this).attr("name"),  //The name of action which is passed to the view
+                         csrfmiddlewaretoken: '{{ csrf_token }}'
+                     },
+                     function (data, status) {
+                         {#                            alert("Data: " + data + "\nStatus: " + status);#}
+                         $("#result").val(data + " = " + status)
+                     })
+                     .fail(function (xhr, ajaxOptions, thrownError) {
+                         $("div#preload h2").html(xhr.message);
+
+                     });
+             return false;
+         });
+     });{% endcomment %}
+            {#            Активация расписания#}
+            $(".sched_act_start").click(function () {
+                  var requestData = {schedule_id: "1"};
+                  alert("Before call"+"{% url "sch"  rasp.id %}")
+                  // Send the data using post
+                   $.post("{% url "start_sch" rasp.id %}",{
+                            csrfmiddlewaretoken: '{{ csrf_token }}'},
+                  function (data, status) {
+                            {#                            alert("Data: " + data + "\nStatus: " + status);#}
+                            $("#result").val(data + " = " + status)
+                        });
+                  alert("After call")
+              });
+
+              {#            #}
+              $(".sched_act_stop").click(function () {
+                  alert("kuku2, id = " + $(this).attr("id"));
+              });
+              {% comment %}  $.post("{% url "sch" rasp.id %}",
+                        {
+                            type: "SCHEDULE",
+                            sch_id: $(this).attr("id"),
+                            action: $(this).attr("name"),  //The name of action which is passed to the view
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        function (data, status) {
+                            {#                            alert("Data: " + data + "\nStatus: " + status);#}
+                            $("#result").val(data + " = " + status)
+                        })
+                        .fail(function (xhr, ajaxOptions, thrownError) {
+                            $("div#preload h2").html(xhr.message);
+
+                        });
+                return false;
+            });{% endcomment %}
+
+        })
+
+    </script>
 
     <link rel="stylesheet" href="{{ STATIC_URL }}main.css" type="text/css">
 </head>
@@ -33,18 +112,22 @@
                         </tr>
                         <tr valign="middle">
                             <td style="vertical-align: bottom">
-                                    <input type="button" value="Старт" style="height: 100%"/>
-                                    <input type="button" value="Стоп"  style="height: 100%"/>
+                                <input type="button" value="Старт" id="{{ cell.id }}" class="sched_act_start"
+                                       style="height: 100%"/>
+                                <input type="button" value="Стоп" id="{{ cell.id }}" class="sched_act_stop"
+                                       style="height: 100%"/>
                             </td>
                         </tr>
                     </table>
 
-                    <table style="padding-left: 5px;padding-right: 5px; " cellspacing="0" width="100%" border="0">
+                    <table style="padding-left: 5px;padding-right: 5px;padding-top: 5px " cellspacing="0" width="100%"
+                           border="0">
                         <thead>
                         <tr>
                             <th align="centre" style="border: solid lightblue 1px;border-right: none">Действие</th>
                             <th align="centre" style="border: solid lightblue 1px;border-right: none">AJAX</th>
                             <th align="centre" style="border: solid lightblue 1px">Статус</th>
+                            <th align="centre" style="border: solid lightblue 1px">Время запуска</th>
                             <th align="centre" style="border: solid lightblue 1px">Пропуск</th>
                             <th align="centre" style="border: solid lightblue 1px">Коммент</th>
                         </tr>
@@ -60,6 +143,9 @@
                                 </td>
                                 <td style="border: solid lightblue 1px; border-top: none">
                                     <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.status }}</label>
+                                </td>
+                                <td style="border: solid lightblue 1px; border-top: none">
+                                    <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.start_time }}</label>
                                 </td>
                                 <td style="border: solid lightblue 1px; border-top: none">
                                     <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.skip }}</label>

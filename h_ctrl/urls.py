@@ -9,4 +9,5 @@ urlpatterns = patterns('',
     url(r'^(?P<pi_id>\d+)/do/$', views.command, name='command'),
     url(r'^(?P<pi_id>\d+)/ajax/$', views.ajax, name='ajax'),
     url(r'^(?P<pi_id>\d+)/sch/$', views.sch, name='sch'),
+    url(r'^(?P<pi_id>\d+)/start_schedule/$', views.start_schedule, name='start_sch')
 )
