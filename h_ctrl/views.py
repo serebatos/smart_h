@@ -55,9 +55,9 @@ def detail(request, pi_id):
             # if not sch_details == None:
             # sch_active_list.append({"schedule": s, "details": sch_details})
             # print("Appended,"),
-            #     print sch_details
+            # print sch_details
             # else:
-            #     print("Empty!!!")
+            # print("Empty!!!")
 
 
     except Pi.DoesNotExist:
@@ -74,16 +74,31 @@ def command(request, pi_id):
     return HttpResponse(message)
 
 
+def change_schedule_status(sch_id, status):
+    schedule = get_object_or_404(Schedule, id=sch_id)
+    schedule.status = status
+    # save to DB
+    schedule.save()
+    print("Saved:" + status)
+
+
+def stop_schedule(request, pi_id):
+    try:
+        sch_id = request.POST['sch_id']
+        change_schedule_status(sch_id, STATUS_STOPPED)
+        messsage = {RESULT_OK}
+    except Schedule.DoesNotExist:
+        raise Http404
+    return HttpResponse(messsage)
+
+
 def start_schedule(request, pi_id):
-    # try:
-        # schedule = get_object_or_404(Schedule, id=schedule_id)
-        # schedule.status = STATUS_PLANNED #
-        # # save to DB
-        # schedule.save()
-    print("ok")
-    messsage = {"result": RESULT_OK}
-    # except Schedule.DoesNotExist:
-    #     raise Http404
+    try:
+        sch_id = request.POST['sch_id']
+        change_schedule_status(sch_id, STATUS_PLANNED)
+        messsage = {RESULT_OK}
+    except Schedule.DoesNotExist:
+        raise Http404
     return HttpResponse(messsage)
 
 
