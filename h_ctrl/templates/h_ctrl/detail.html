@@ -83,6 +83,13 @@
     </script>
 
     <link rel="stylesheet" href="{{ STATIC_URL }}main.css" type="text/css">
+    <script>
+        $(document).ready(function () {
+            var val = $("#status_1").html();
+            alert(val);
+            $("#status_1").text("Запланирован");
+        });
+    </script>
 </head>
 <body>
 <table width="100%" cellpadding="0" cellspacing="0">
@@ -93,11 +100,11 @@
         </h3></td>
     </tr>
     <tr>
-        <td style="background: #417690;color: #ffc; padding-left: 5px; " colspan=3"><h1>Задачи:</h1></td>
+        <td style="background: #417690;color: #ffc; padding-left: 5px; " colspan=3"><h1>Задачи</h1></td>
     </tr>
 
     {% for row in ret_list %}
-        <tr>
+        <tr valign="top">
             {% for cell in row %}
                 <td style="border: solid 1px grey;width: 33%;">
                     <table width="100%" border="1">
@@ -106,8 +113,8 @@
                                 <h1 style="color: #666;font-family: 'Lucida Grande',Verdana,Arial,sans-serif;font-size: 18px;">{{ cell.name }}:</h1>
 
                             </td>
-                            <td width="50%">Статус:<label
-                                    style="font-weight: normal !important;color: #666;font-size: 16px;">Остановлен</label>
+                            <td width="50%">Статус:<label id="status_{{ cell.id }}"
+                                                          style="font-weight: normal !important;color: #666;font-size: 16px;">Остановлен</label>
                             </td>
                         </tr>
                         <tr valign="middle">
