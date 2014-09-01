@@ -12,6 +12,7 @@ from subprocess import call
 from django.db.models import Q
 
 
+# Обработка действий со страницы(AJAX)
 def do_action(request, pi_id):
     print repr(request)
     msg = "ok"
