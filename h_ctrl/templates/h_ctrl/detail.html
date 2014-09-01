@@ -4,7 +4,7 @@
     <script src="{{ STATIC_URL }}jquery-1.11.1.js"></script>
     <script type="text/javascript">
         $(document).ready(function () {
-           {# Доп функция по обработке параметров при успехе #}
+            {# Доп функция по обработке параметров при успехе #}
             var extraSuccess = function (extraData) {
                 return function (data, textStatus, jqXHR) {
                     var id = extraData['sch_id']
@@ -40,7 +40,7 @@
                 var requestData = {sch_id: $(this).attr("id"),
                     csrfmiddlewaretoken: '{{ csrf_token }}'
                 };
-                var extra = {sch_id: $(this).attr("id"), text: "Остановлено"}
+                var extra = {sch_id: $(this).attr("id"), text: "Остановлен"}
                 $.ajax({
                     url: "{% url "stop_sch" rasp.id %}",
                     type: "POST",
@@ -48,6 +48,22 @@
                     success: extraSuccess(extra),
                     error: function (jqXHR, textStatus, errorThrown) {
                         $("#ajax_status_" + schedule_id).val(textStatus)
+                    }
+                });
+            });
+
+            {# Непосредственное действие        #}
+            $("#act").click(function () {
+                var requestData = {sch_id: $(this).attr("id"),
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                };
+                var extra = {sch_id: $(this).attr("id"), text: "Остановлен"}
+                $.ajax({
+                    url: "{% url "do_act" rasp.id %}",
+                    type: "POST",
+                    data: requestData,
+                    success: extraSuccess(extra),
+                    error: function (jqXHR, textStatus, errorThrown) {
                     }
                 });
             });
@@ -91,12 +107,13 @@
                         </tr>
                     </table>
 
-                    <table style="padding-left: 5px;padding-right: 5px; " cellspacing="0" width="100%" border="0">
+                    <table style="padding-left: 5px;padding-right: 5px; padding-top: 5px " cellspacing="0" width="100%"
+                           border="0">
                         <thead>
                         <tr>
-                            <th align="centre" style="border: solid lightblue 1px;border-right: none">Действие</th>
-                            <th align="centre" style="border: solid lightblue 1px;border-right: none">AJAX</th>
-                            <th align="centre" style="border: solid lightblue 1px">Статус</th>
+                            <th align="center" style="border: solid lightblue 1px;border-right: none">Действие</th>
+                            <th align="center" style="border: solid lightblue 1px;border-right: none">AJAX</th>
+                            <th align="center" style="border: solid lightblue 1px">Статус</th>
                             <th align="center" style="border: solid lightblue 1px">Время запуска</th>
                             <th align="center" style="border: solid lightblue 1px">Пропуск</th>
                             <th align="center" style="border: solid lightblue 1px">Коммент</th>
@@ -106,13 +123,17 @@
                         {% for actsched in cell.actionschedules_set.all %}
                             <tr align="center">
                                 <td style="border: solid lightblue 1px; border-top: none;border-right: none">
-                                    <input type="button" value="{{ actsched.action.name }}" style="width: 100%"/>
+                                    <input type="button" value="{{ actsched.action.name }}" id="act"
+                                           style="width: 100%"/>
                                 </td>
                                 <td style="border: solid lightblue 1px; border-top: none; border-right: none">
                                     <label style="color: green">--</label>
                                 </td>
                                 <td style="border: solid lightblue 1px; border-top: none">
                                     <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.status }}</label>
+                                </td>
+                                <td style="border: solid lightblue 1px; border-top: none">
+                                    <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.start_time }}</label>
                                 </td>
                                 <td style="border: solid lightblue 1px; border-top: none">
                                     <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.skip }}</label>
