@@ -54,7 +54,7 @@
 
             {# Непосредственное действие        #}
             $("#act").click(function () {
-                var requestData = {sch_id: $(this).attr("id"),
+                var requestData = {actino: $(this).attr("id"),
                     csrfmiddlewaretoken: '{{ csrf_token }}'
                 };
                 var extra = {sch_id: $(this).attr("id"), text: "Остановлен"}
@@ -123,6 +123,7 @@
                         {% for actsched in cell.actionschedules_set.all %}
                             <tr align="center">
                                 <td style="border: solid lightblue 1px; border-top: none;border-right: none">
+                                    {% comment %}todo: Допилить{% endcomment %}
                                     <input type="button" value="{{ actsched.action.name }}" id="act"
                                            style="width: 100%"/>
                                 </td>

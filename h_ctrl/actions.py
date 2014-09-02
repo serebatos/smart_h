@@ -11,9 +11,16 @@ from models import Pi
 from subprocess import call
 from django.db.models import Q
 
-
-# Обработка действий со страницы(AJAX)
+# Test
 def do_action(request, pi_id):
-    print repr(request)
+    action = request.POST['action']
+    try:
+        actObj = get_object_or_404(Action, name=action)
+        # command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % actObj.pin, "%s" % actObj.cmd_code]
+        # res = call(command)
+        print(actObj.name)
+    except Action.DoesNotExist:
+        raise Http404
+    print "do_action: OK"
     msg = "ok"
     return HttpResponse(request, msg)
