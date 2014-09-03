@@ -112,80 +112,89 @@
     {% for row in ret_list %}
         <tr valign="top">
             {% for cell in row %}
-                <td style="border: solid 1px grey;width: 33%;">
-                    <table width="100%" border="1">
-                        <tr valign="middle">
-                            <td rowspan="2" width="50%">
-                                <h1 style="color: #666;font-family: 'Lucida Grande',Verdana,Arial,sans-serif;font-size: 18px;">{{ cell.name }}:</h1>
+                <td style="border: solid 1px grey;width: 33%;height: 100%;">
+                    <div class="wrapper">
+                        <div id="div_top">
+                            <table width="100%" border="1">
+                                <tr valign="middle">
+                                    <td rowspan="2" width="50%">
+                                        <h1 style="color: #666;font-family: 'Lucida Grande',Verdana,Arial,sans-serif;font-size: 18px;">{{ cell.name }}:</h1>
 
-                            </td>
-                            <td width="50%">Статус:<label id="status_{{ cell.id }}"
-                                                          style="font-weight: normal !important;color: #666;font-size: 16px;"
-                                                          class="status_labels">{{ cell.status }}</label>
-                            </td>
-                        </tr>
-                        <tr valign="middle">
-                            <td style="vertical-align: bottom">
-                                <input type="button" value="Старт" id="{{ cell.id }}" class="sched_act_start"
-                                       style="height: 100%"/>
-                                <input type="button" value="Стоп" id="{{ cell.id }}" class="sched_act_stop"
-                                       style="height: 100%"/>
-                            </td>
-                        </tr>
-                    </table>
-
-                    <table style="padding-left: 5px;padding-right: 5px; padding-top: 5px " cellspacing="0" width="100%"
-                           border="0">
-                        <thead>
-                        <tr>
-                            <th align="center" style="border: solid lightblue 1px;border-right: none">Действие</th>
-                            <th align="center" style="border: solid lightblue 1px;border-right: none">AJAX</th>
-                            <th align="center" style="border: solid lightblue 1px">Статус</th>
-                            <th align="center" style="border: solid lightblue 1px">Время запуска</th>
-                            <th align="center" style="border: solid lightblue 1px">Пропуск</th>
-                            <th align="center" style="border: solid lightblue 1px">Коммент</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for actsched in cell.actionschedules_set.all %}
-                            <tr align="center">
-                                <td style="border: solid lightblue 1px; border-top: none;border-right: none">
-                                    {% comment %}todo: Допилить{% endcomment %}
-                                    <div id="{{ cell.id }}_{{ forloop.counter }}">
-                                        <input type="button" value="{{ actsched.action.name }}"
-                                               id="{{ actsched.action.id }}"
-                                               style="width: 100%" class="act_button"/>
-                                    </div>
-                                </td>
-                                <td style="border: solid lightblue 1px; border-top: none; border-right: none">
-                                    <label style="color: green"
-                                           id="act_ajax_st_{{ cell.id }}_{{ forloop.counter }}_{{ actsched.action.id }}">--</label>
-                                </td>
-                                <td style="border: solid lightblue 1px; border-top: none">
-                                    <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.status }}</label>
-                                </td>
-                                <td style="border: solid lightblue 1px; border-top: none">
-                                    <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.start_time }}</label>
-                                </td>
-                                <td style="border: solid lightblue 1px; border-top: none">
-                                    <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.skip }}</label>
-                                </td>
-                                <td style="border: solid lightblue 1px; border-top: none">
-                                    <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.comment }}</label>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                    <table style="padding-top: 20px" width="100%">
-                        <tr>
-                            <td colspan="3">AJAX request details:</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3"><input type="text" value="" id="ajax_status_{{ cell.id }}"
-                                                   style="width: 100%"/></td>
-                        </tr>
-                    </table>
+                                    </td>
+                                    <td width="50%">Статус:<label id="status_{{ cell.id }}"
+                                                                  style="font-weight: normal !important;color: #666;font-size: 16px;"
+                                                                  class="status_labels">{{ cell.status }}</label>
+                                    </td>
+                                </tr>
+                                <tr valign="middle">
+                                    <td style="vertical-align: bottom">
+                                        <input type="button" value="Старт" id="{{ cell.id }}" class="sched_act_start"
+                                               style="height: 100%"/>
+                                        <input type="button" value="Стоп" id="{{ cell.id }}" class="sched_act_stop"
+                                               style="height: 100%"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div id="div_middle">
+                            <table style="padding-left: 5px;padding-right: 5px; padding-top: 5px " cellspacing="0"
+                                   width="100%"
+                                   border="0">
+                                <thead>
+                                <tr>
+                                    <th align="center" style="border: solid lightblue 1px;border-right: none">Действие
+                                    </th>
+                                    <th align="center" style="border: solid lightblue 1px;border-right: none">AJAX</th>
+                                    <th align="center" style="border: solid lightblue 1px">Статус</th>
+                                    <th align="center" style="border: solid lightblue 1px">Время запуска</th>
+                                    <th align="center" style="border: solid lightblue 1px">Пропуск</th>
+                                    <th align="center" style="border: solid lightblue 1px">Коммент</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for actsched in cell.actionschedules_set.all %}
+                                    <tr align="center">
+                                        <td style="border: solid lightblue 1px; border-top: none;border-right: none">
+                                            {% comment %}todo: Допилить{% endcomment %}
+                                            <div id="{{ cell.id }}_{{ forloop.counter }}">
+                                                <input type="button" value="{{ actsched.action.name }}"
+                                                       id="{{ actsched.action.id }}"
+                                                       style="width: 100%" class="act_button"/>
+                                            </div>
+                                        </td>
+                                        <td style="border: solid lightblue 1px; border-top: none; border-right: none">
+                                            <label style="color: green"
+                                                   id="act_ajax_st_{{ cell.id }}_{{ forloop.counter }}_{{ actsched.action.id }}">--</label>
+                                        </td>
+                                        <td style="border: solid lightblue 1px; border-top: none">
+                                            <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.status }}</label>
+                                        </td>
+                                        <td style="border: solid lightblue 1px; border-top: none">
+                                            <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.start_time }}</label>
+                                        </td>
+                                        <td style="border: solid lightblue 1px; border-top: none">
+                                            <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.skip }}</label>
+                                        </td>
+                                        <td style="border: solid lightblue 1px; border-top: none">
+                                            <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.comment }}</label>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="div_bottom">
+                            <table style="padding-top: 20px; " width="100%">
+                                <tr>
+                                    <td colspan="3">AJAX request details:</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3"><input type="text" value="" id="ajax_status_{{ cell.id }}"
+                                                           style="width: 100%"/></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
                 </td>
             {% endfor %}
         </tr>
