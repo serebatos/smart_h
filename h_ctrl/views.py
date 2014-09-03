@@ -1,4 +1,4 @@
-from django.http.response import Http404
+from django.http.response import Http404, StreamingHttpResponse
 from django.template import RequestContext
 from django.shortcuts import render, get_object_or_404
 from django.shortcuts import render_to_response
@@ -89,7 +89,7 @@ def stop_schedule(request, pi_id):
     try:
         sch_id = request.POST['sch_id']
         change_schedule_status(sch_id, STATUS_STOPPED)
-        messsage = {RESULT_OK}
+        messsage = {STATUS_STOPPED}
     except Schedule.DoesNotExist:
         raise Http404
     return HttpResponse(messsage)
@@ -99,7 +99,7 @@ def start_schedule(request, pi_id):
     try:
         sch_id = request.POST['sch_id']
         change_schedule_status(sch_id, STATUS_PLANNED)
-        messsage = {RESULT_OK}
+        messsage = {STATUS_PLANNED}
     except Schedule.DoesNotExist:
         raise Http404
     return HttpResponse(messsage)

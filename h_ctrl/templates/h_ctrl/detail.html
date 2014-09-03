@@ -9,15 +9,11 @@
             return function (data, textStatus, jqXHR) {
                 var id = extraData['sch_id'];
                 var text = extraData['text'];
-                {#                $("#ajax_status_" + id).val(textStatus);#}
-                {#                if (data == '0') {#}
-                {#                $("#status_" + id).text(text);#}
-                console.log("In callback");
                 var status_id = "status_" + id;
-                updateStatus(status_id);
-                {#                }#}
+                updateStatus(status_id, data);
             }
         }
+
         {#        Успех от Do Action#}
         var extraSuccessAct = function (extraData) {
             return function (data, textStatus, jqXHR) {
@@ -196,48 +192,30 @@
     {% endfor %}
 </table>
 <script>
-    function updateStatus(status_id) {
-        if (typeof status_id == 'undefined') {
-            console.log($(this).text());
-            $("label.status_labels").each(function () {
-                if ($(this).text() == 'S') {
-                    $(this).text("Остановлен1");
-                    console.log("Остановлен");
-
-                }
-                if ($(this).text() == 'P') {
-                    $(this).text("Запланирован1");
-                    console.log("Запланирован");
-
-                }
-                if ($(this).text() == 'R') {
-                    $(this).text("Выполняется1");
-                    console.log("Выполняется");
-
-                }
-            });
-        } else {
-            var statusElem = $("#" + status_id);
-
-            if (statusElem.text() == 'S') {
-                statusElem.text("Остановлен2");
-                console.log("Остановлен");
-
-            }
-            if (statusElem.text() == 'P') {
-                statusElem.text("Запланирован2");
-                console.log("Запланирован");
-            }
-
-            if (statusElem.text() == 'R') {
-                statusElem.text("Выполняется2");
-                console.log("Выполняется");
-            }
+    function updateStatus(status_id, status) {
+        var statusElem = $("#" + status_id);
+        console.log(status_id);
+        console.log(statusElem.text());
+        if (status == 'S') {
+            statusElem.text("Остановлен");
+            console.log("Остановлен");
+        }
+        if (status == 'P') {
+            statusElem.text("Запланирован");
+            console.log("Запланирован");
         }
 
+        if (status == 'R') {
+            statusElem.text("Выполняется");
+            console.log("Выполняется");
+        }
     }
 
-    $(document).ready(updateStatus());
+    $(document).ready(function () {
+        $("label.status_labels").each(function () {
+            updateStatus($(this).attr("id"), $(this).text());
+        });
+    });
 
 </script>
 
