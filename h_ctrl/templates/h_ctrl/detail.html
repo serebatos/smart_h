@@ -3,26 +3,45 @@
 <head>
     <script src="{{ STATIC_URL }}jquery-1.11.1.js"></script>
     <script type="text/javascript">
-        $(document).ready(function () {
-            {# Доп функция по обработке параметров при успехе #}
-            var extraSuccess = function (extraData) {
-                return function (data, textStatus, jqXHR) {
-                    var id = extraData['sch_id']
-                    var text = extraData['text']
-                    $("#ajax_status_" + id).val(textStatus)
-                    if (data == '0') {
-                        $("#status_" + id).text(text)
-                    }
-                }
+        var act_st_param = 'act_stat_id';
+        {# Доп функция по обработке параметров при успехе #}
+        var extraSuccess = function (extraData) {
+            return function (data, textStatus, jqXHR) {
+                var id = extraData['sch_id'];
+                var text = extraData['text'];
+{#                $("#ajax_status_" + id).val(textStatus);#}
+{#                if (data == '0') {#}
+                    $("#status_" + id).text(text);
+{#                }#}
             }
+        }
+        {#        Успех от Do Action#}
+        var extraSuccessAct = function (extraData) {
+            return function (data, textStatus, jqXHR) {
+                var id = extraData[act_st_param];
+                var text = extraData['text'];
+                $("#act_ajax_st_" + id).text(text);
+                $("#act_ajax_st_" + id).css("color", 'green');
+            }
+        }
 
+        var extraErrorAct = function (extraData) {
+            return function (jqXHR, textStatus, errorThrown) {
+                var id = extraData[act_st_param];
+                var text = extraData['text'];
+                $("#act_ajax_st_" + id).text(text);
+                $("#act_ajax_st_" + id).css("color", 'red');
+
+            }
+        }
+
+
+        $(document).ready(function () {
             {#            Активация расписания#}
             $(".sched_act_start").click(function () {
-                var requestData = {sch_id: $(this).attr("id"),
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                };
+                var requestData = {sch_id: $(this).attr("id"), csrfmiddlewaretoken: '{{ csrf_token }}' };
+                var extra = {sch_id: $(this).attr("id"), text: "Запланировано"};
 
-                var extra = {sch_id: $(this).attr("id"), text: "Запланировано"}
                 // Send the data using post
                 $.ajax({
                     url: "{% url "start_sch" rasp.id %}",
@@ -37,10 +56,9 @@
 
             {#            Остановка расписания#}
             $(".sched_act_stop").click(function () {
-                var requestData = {sch_id: $(this).attr("id"),
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                };
-                var extra = {sch_id: $(this).attr("id"), text: "Остановлен"}
+                var requestData = {sch_id: $(this).attr("id"), csrfmiddlewaretoken: '{{ csrf_token }}' };
+                var extra = {sch_id: $(this).attr("id"), text: "Остановлен"};
+
                 $.ajax({
                     url: "{% url "stop_sch" rasp.id %}",
                     type: "POST",
@@ -52,21 +70,29 @@
                 });
             });
 
-            {# Непосредственное действие        #}
-            $("#act").click(function () {
-                var requestData = {actino: $(this).attr("id"),
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                };
-                var extra = {sch_id: $(this).attr("id"), text: "Остановлен"}
+            {# Непосредственное действие #}
+            $(".act_button").click(function () {
+                var act_id = $(this).attr("id");
+                var cell_id = $(this).parent().attr("id");
+                var stat_id = cell_id + "_" + act_id;
+
+                var requestData = {action_id: act_id, csrfmiddlewaretoken: '{{ csrf_token }}'};
+
+                var extraSucc = { text: "ok"};
+                extraSucc[act_st_param] = stat_id;
+
+                var extraError = {text: "err"};
+                extraError[act_st_param] = stat_id;
+
                 $.ajax({
                     url: "{% url "do_act" rasp.id %}",
                     type: "POST",
                     data: requestData,
-                    success: extraSuccess(extra),
-                    error: function (jqXHR, textStatus, errorThrown) {
-                    }
+                    success: extraSuccessAct(extraSucc),
+                    error: extraErrorAct(extraError)
                 });
             });
+
         });
     </script>
     <link rel="stylesheet" href="{{ STATIC_URL }}main.css" type="text/css">
@@ -124,11 +150,14 @@
                             <tr align="center">
                                 <td style="border: solid lightblue 1px; border-top: none;border-right: none">
                                     {% comment %}todo: Допилить{% endcomment %}
-                                    <input type="button" value="{{ actsched.action.name }}" id="act"
-                                           style="width: 100%"/>
+                                    <div id="{{ cell.id }}_{{ forloop.counter }}">
+                                        <input type="button" value="{{ actsched.action.name }}"
+                                               id="{{ actsched.action.id }}"
+                                               style="width: 100%" class="act_button"/>
+                                    </div>
                                 </td>
                                 <td style="border: solid lightblue 1px; border-top: none; border-right: none">
-                                    <label style="color: green">--</label>
+                                    <label style="color: green" id="act_ajax_st_{{ cell.id }}_{{ forloop.counter }}_{{ actsched.action.id }}">--</label>
                                 </td>
                                 <td style="border: solid lightblue 1px; border-top: none">
                                     <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.status }}</label>
@@ -148,10 +177,10 @@
                     </table>
                     <table style="padding-top: 20px" width="100%">
                         <tr>
-                            <td colspan="3">Last AJAX result</td>
+                            <td colspan="3">AJAX request details:</td>
                         </tr>
                         <tr>
-                            <td colspan="3"><input type="text" value="Test result" id="ajax_status_{{ cell.id }}"
+                            <td colspan="3"><input type="text" value="" id="ajax_status_{{ cell.id }}"
                                                    style="width: 100%"/></td>
                         </tr>
                     </table>
