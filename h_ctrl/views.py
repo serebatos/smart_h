@@ -41,14 +41,17 @@ def detail(request, pi_id):
         cur_line = 1
         idx_line = 0
         # if len(be.schedDict) > 0:
+        # Looping through all schedules
         for s in sch_all:
             idx_line = cur_line % 3
             ret_list_row.append(s)
             if idx_line == 0:
+                # add 3 columns per row
                 ret_list.append(ret_list_row)
                 ret_list_row = list()
             cur_line += 1
         if len(ret_list_row) > 0:
+            # add row
             ret_list.append(ret_list_row)
             # print("Searching")
             # sch_details = be.schedDict.get(s.id)

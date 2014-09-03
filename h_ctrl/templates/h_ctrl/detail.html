@@ -9,10 +9,13 @@
             return function (data, textStatus, jqXHR) {
                 var id = extraData['sch_id'];
                 var text = extraData['text'];
-{#                $("#ajax_status_" + id).val(textStatus);#}
-{#                if (data == '0') {#}
-                    $("#status_" + id).text(text);
-{#                }#}
+                {#                $("#ajax_status_" + id).val(textStatus);#}
+                {#                if (data == '0') {#}
+                {#                $("#status_" + id).text(text);#}
+                console.log("In callback");
+                var status_id = "status_" + id;
+                updateStatus(status_id);
+                {#                }#}
             }
         }
         {#        Успех от Do Action#}
@@ -92,8 +95,9 @@
                     error: extraErrorAct(extraError)
                 });
             });
-
         });
+
+
     </script>
     <link rel="stylesheet" href="{{ STATIC_URL }}main.css" type="text/css">
 </head>
@@ -120,7 +124,8 @@
 
                             </td>
                             <td width="50%">Статус:<label id="status_{{ cell.id }}"
-                                                          style="font-weight: normal !important;color: #666;font-size: 16px;">Остановлен</label>
+                                                          style="font-weight: normal !important;color: #666;font-size: 16px;"
+                                                          class="status_labels">{{ cell.status }}</label>
                             </td>
                         </tr>
                         <tr valign="middle">
@@ -157,7 +162,8 @@
                                     </div>
                                 </td>
                                 <td style="border: solid lightblue 1px; border-top: none; border-right: none">
-                                    <label style="color: green" id="act_ajax_st_{{ cell.id }}_{{ forloop.counter }}_{{ actsched.action.id }}">--</label>
+                                    <label style="color: green"
+                                           id="act_ajax_st_{{ cell.id }}_{{ forloop.counter }}_{{ actsched.action.id }}">--</label>
                                 </td>
                                 <td style="border: solid lightblue 1px; border-top: none">
                                     <label style="font-weight: normal !important;color: #666;font-size: 14px;">{{ actsched.status }}</label>
@@ -189,6 +195,51 @@
         </tr>
     {% endfor %}
 </table>
+<script>
+    function updateStatus(status_id) {
+        if (typeof status_id == 'undefined') {
+            console.log($(this).text());
+            $("label.status_labels").each(function () {
+                if ($(this).text() == 'S') {
+                    $(this).text("Остановлен1");
+                    console.log("Остановлен");
+
+                }
+                if ($(this).text() == 'P') {
+                    $(this).text("Запланирован1");
+                    console.log("Запланирован");
+
+                }
+                if ($(this).text() == 'R') {
+                    $(this).text("Выполняется1");
+                    console.log("Выполняется");
+
+                }
+            });
+        } else {
+            var statusElem = $("#" + status_id);
+
+            if (statusElem.text() == 'S') {
+                statusElem.text("Остановлен2");
+                console.log("Остановлен");
+
+            }
+            if (statusElem.text() == 'P') {
+                statusElem.text("Запланирован2");
+                console.log("Запланирован");
+            }
+
+            if (statusElem.text() == 'R') {
+                statusElem.text("Выполняется2");
+                console.log("Выполняется");
+            }
+        }
+
+    }
+
+    $(document).ready(updateStatus());
+
+</script>
 
 </body>
 </html>
