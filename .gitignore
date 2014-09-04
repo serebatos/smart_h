@@ -1,5 +1,7 @@
 .idea/*
 .idea/
+.idea/smart_h.iml
+.idea/*.iml
 *.ipr
 *.iml
 *.pyc
