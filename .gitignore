@@ -4,5 +4,7 @@
 .idea/*.iml
 *.ipr
 *.iml
+mysite.log
+Sveta.js
 *.pyc
 **/*.pyc
