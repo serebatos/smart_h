@@ -21,6 +21,7 @@ from django.utils import timezone
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smart_h.settings")
 from h_ctrl.models import Action, ActionSchedules, Schedule, Pi, Home
 
+
 class Backend(object):
     c = 0
     logger = logging.getLogger(__name__)
@@ -31,48 +32,79 @@ class Backend(object):
             cls.instance = super(Backend, cls).__new__(cls)
         return cls.instance
 
-
+    # Выполнение события, запланированного через штатный шедулер, не путать с exec_action
     def exec_event(self, actionschedules, prev_actionschedules):
-        if actionschedules.skip == False and actionschedules.schedule.enabled == True:
-            self.logger.info("%s Running action:%s", time.time(), actionschedules.action.name)
+        Backend.c -= 1
+        if Backend.c == 0:
+            last_event = True
+        else:
+            last_event = False
+        # Проверка на проставленность флага "Пропуск"
+        if actionschedules.skip is False and actionschedules.schedule.enabled is True:
+            self.logger.info("%s Running action {%s}", time.time(), actionschedules.action.name)
+
             actualAction = Action.objects.get(pk=actionschedules.action.id)
             self.exec_action(actualAction)
 
-            actionschedules.status = ACT_RUNNING
+            if last_event is True:
+                actionschedules.status = ACT_STOPPED
+                self.exec_schedule(actionschedules.schedule)
+            else:
+                actionschedules.status = ACT_RUNNING
             actionschedules.save()
+
             self.logger.info("Backend. Status saved")
 
-            if prev_actionschedules != None:
+            if prev_actionschedules is not None:
                 prev_actionschedules.status = ACT_STOPPED
                 prev_actionschedules.save()
+
+        # Пропускаем действие
         else:
-            self.logger.info(unicode("Skipping action:{}".format(actionschedules.action.name)))
+            self.logger.info(unicode("Skipping action {}".format(actionschedules.action.name)))
             # todo: как сделать,чтобы после перезапуска распбери все работало и как сделать повторение на след день,
             # как вариант последний шаг заново инициализирует на следующий день шедулер
+        # event_index = self.evt_list.index(actionschedules)
+        # self.logger.info("Event: %s, index: %s, total: %s",actionschedules,event_index,len(self.evt_list))
+        #
+
+
+
+        # Обновляем время последней активности по данному расписанию
         db_schedule = Schedule.objects.get(pk=actionschedules.schedule.id)
         db_schedule.last_run = datetime.datetime.now()
         db_schedule.save()
 
 
+    # Выполнение действия(управление ногой, например)
     def exec_action(self, action):
         self.set_pin(action.pin, action.cmd_code)
         # command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % actObj.pin, "%s" % actObj.cmd_code]
         # res = call(command)
 
+    def repeat_schedule(self, schedule):
+        return ""
 
     def exec_schedule(self, schedule):
         db_schedule = Schedule.objects.get(pk=schedule.id)
+        self.logger.info("Executing rule '%s'", db_schedule.name)
         if db_schedule.enabled == True:
+
             prev_act_sch = None  # previous action which status should be changed to "Completed'
             count = 0
             act_list = list()
             self.scheduler = sched.scheduler(time.time, time.sleep)
             self.evt_list = act_list
-            dt = datetime.datetime.now()
 
+            self.logger.info("Logging before planning events")
+            print repr(self.scheduler._queue)
+            print (len(self.evt_list))
+
+            dt = datetime.datetime.now()
+            self.logger.info("Planning events")
             for act_sched in db_schedule.actionschedules_set.all():
                 self.logger.info("Action '%s' is being putted in queue. Start time is %s", act_sched.action.name,
-                             act_sched.start_time)
+                                 act_sched.start_time)
 
                 # time_float = (act_sched.start_time - newTime.utcfromtimestamp(14400)).total_seconds()
                 tcur = time.time()
@@ -85,8 +117,9 @@ class Backend(object):
                     tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
                                       dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
                     self.logger.info("Backend. Start time is in the past. Planning this action(%s) on %s",
-                                 act_sched.action.name, dtstart)
-                # planned event
+                                     act_sched.action.name, dtstart)
+
+                # planned event - crucial moment in the whole project ^^
                 event_sched = self.scheduler.enterabs(tt, 1, self.exec_event, (act_sched, prev_act_sch))
 
                 # Статус в "Ожидание" выполнения
@@ -103,11 +136,18 @@ class Backend(object):
                 self.logger.info("...")
                 # single thread version is not suitable for async calls
                 # scheduler.run()
+
                 # Start a thread to run the events
                 t = threading.Thread(target=self.scheduler.run)
                 t.start()
+                Backend.c = count
+
                 # anoter wat to play actions
                 # threading.Timer()
+                self.logger.info("Logging total planned events")
+                print repr(self.evt_list)
+            elif count == 1:
+                self.logger.warn("Only 1 action")
             else:
                 self.logger.info("Nothing to plan...")
         else:
@@ -118,6 +158,7 @@ class Backend(object):
     def stop_schedule(self, schedule):
         # Отменяем все, что в Планировщике
         self.force_stop()
+        self.logger.info("Self scheduler is cancelled")
         # Поочереди отменяем все, что в статусе "Ожидание" или "В работе" и выключаем ноги
         for act_sched in schedule.actionschedules_set.all():
             self.stop_actsched(act_sched)
@@ -129,8 +170,9 @@ class Backend(object):
         # неверно так прерывать, надо после этого пробежаться по всем шагам и выполнить их
         if self.evt_list != None and self.scheduler != None:
             for e in self.evt_list:
-                self.logger.info("Cancelling")
+                self.logger.info("Cancelling(%s)", e)
                 self.scheduler.cancel(e)
+                self.logger.info("Cancelling(%s) - OK")
 
 
     # Выключаем ногу, которая в расписании, сообщаем в лог, и статус меняем с "ожидания" на "остановлено"
@@ -210,7 +252,7 @@ if __name__ == "__main__":
     # print self.data
     # # Likewise, self.wfile is a file-like object used to write back
     # # to the client
-    #         self.wfile.write(self.data.upper())
+    # self.wfile.write(self.data.upper())
 
     i = 5
     den = 3

@@ -83,23 +83,28 @@ def change_schedule_status(sch_id, status):
     # save to DB
     schedule.save()
     print("Saved:" + status)
+    return schedule
 
 
 def stop_schedule(request, pi_id):
+    be = Backend()
     try:
         sch_id = request.POST['sch_id']
-        change_schedule_status(sch_id, STATUS_STOPPED)
+        schedule = change_schedule_status(sch_id, STATUS_STOPPED)
         messsage = {STATUS_STOPPED}
+        be.stop_schedule(schedule)
     except Schedule.DoesNotExist:
         raise Http404
     return HttpResponse(messsage)
 
 
 def start_schedule(request, pi_id):
+    be = Backend()
     try:
         sch_id = request.POST['sch_id']
-        change_schedule_status(sch_id, STATUS_PLANNED)
+        schedule = change_schedule_status(sch_id, STATUS_PLANNED)
         messsage = {STATUS_PLANNED}
+        be.exec_schedule(schedule)
     except Schedule.DoesNotExist:
         raise Http404
     return HttpResponse(messsage)
@@ -129,7 +134,7 @@ def sch(request, pi_id):
         status = STATUS_RUNNING
         be.exec_schedule(schedule)
 
-    print "Status switched to: %s" % status
+    print "Status switched to: %s" % status % ", action: %s" % action
     schedule.status = status
     schedule.save()
     print("Saved")
