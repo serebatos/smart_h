@@ -7,12 +7,13 @@ from h_ctrl.models import Pi, Action, Home, Schedule, ActionSchedules
 
 class ActionSchedulesInline(admin.TabularInline):
     model = Schedule.actions.through
+    readonly_fields = ["planned_start_time"]
     extra = 1
 
 class ScheduleAdmin(admin.ModelAdmin):
     inlines = (ActionSchedulesInline,)
     exclude = ["actions"]
-    readonly_fields = ["total_runs","last_run","status"]
+    readonly_fields = ["total_runs", "last_run", "status"]
 # # fields = (("start_time","end_time"),"certain_date")
 #     list_filter = ['actions']
 #     filter_horizontal = ['actions']

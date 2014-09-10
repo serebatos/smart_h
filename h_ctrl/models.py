@@ -1,9 +1,6 @@
 from django.db import models
-
 # Create your models here.
 from django.db.models.fields.related import ManyToOneRel
-from datetime import date
-from django.db.models.fields.related import ManyToManyField, ManyToManyRel
 
 
 class Home(models.Model):
@@ -37,10 +34,10 @@ class Schedule(models.Model):
     # start_time = models.TimeField()
     # end_time = models.TimeField()
     # certain_date = models.DateTimeField()
-    run_every_days = models.IntegerField(default=1)
+    run_every = models.IntegerField(default=0)
     total_runs = models.IntegerField(default=0)
     last_run = models.DateTimeField(auto_now_add=True, blank=True)
-    status = models.CharField(max_length=1)
+    status = models.CharField(max_length=1, default='S')
     enabled = models.BooleanField()
 
     # actions = models.ManyToManyField('Action', through="ActionSchedules", blank="True")
@@ -54,6 +51,7 @@ class ActionSchedules(models.Model):
     action = models.ForeignKey(Action)
     schedule = models.ForeignKey(Schedule)
     start_time = models.TimeField()
+    planned_start_time = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=1, default='S')
     comment = models.CharField(max_length=64, default=' ')
     skip = models.BooleanField("Skip")
@@ -64,8 +62,8 @@ class ActionSchedules(models.Model):
 
         # class ActionSchedules(models.Model):
         # schedule = models.ForeignKey(Schedule)
-        #     action = models.ForeignKey(Action)
+        # action = models.ForeignKey(Action)
         #
-        #     class Meta:
-        #         db_table = 'store_schedule_actions'
+        # class Meta:
+        # db_table = 'store_schedule_actions'
         #         auto_created = Schedule

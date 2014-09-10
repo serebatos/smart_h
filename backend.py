@@ -1,13 +1,7 @@
 # coding=utf-8
-import threading
-
-ACT_WAITING = 'W'
-
-ACT_STOPPED = 'S'
-
-ACT_RUNNING = 'R'
-
 __author__ = 'Serebatos'
+
+import threading
 import SocketServer
 import os
 import pickle
@@ -21,6 +15,9 @@ from django.utils import timezone
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smart_h.settings")
 from h_ctrl.models import Action, ActionSchedules, Schedule, Pi, Home
 
+ACT_WAITING = 'W'
+ACT_STOPPED = 'S'
+ACT_RUNNING = 'R'
 
 class Backend(object):
     c = 0
@@ -68,13 +65,10 @@ class Backend(object):
         # self.logger.info("Event: %s, index: %s, total: %s",actionschedules,event_index,len(self.evt_list))
         #
 
-
-
         # Обновляем время последней активности по данному расписанию
         db_schedule = Schedule.objects.get(pk=actionschedules.schedule.id)
         db_schedule.last_run = datetime.datetime.now()
         db_schedule.save()
-
 
     # Выполнение действия(управление ногой, например)
     def exec_action(self, action):
@@ -107,12 +101,15 @@ class Backend(object):
                                  act_sched.start_time)
 
                 # time_float = (act_sched.start_time - newTime.utcfromtimestamp(14400)).total_seconds()
+                # Текущее время
                 tcur = time.time()
+                # Планируемое время запуска
                 tt = time.mktime((dt.year, dt.month, dt.day, act_sched.start_time.hour, act_sched.start_time.minute,
                                   act_sched.start_time.second, dt.weekday(), dt.timetuple().tm_yday, -1))
                 # todo: add planned start time to act_sched
                 if tcur > tt:
                     dt = dt.combine(dt.date(), act_sched.start_time)
+                    # Поле last_run надо менять, наверное, по запуску или действительно вводить поля плановое время запуска, чтобы корректно планировать запуск
                     dtstart = dt + datetime.timedelta(days=1)
                     tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
                                       dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
