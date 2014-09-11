@@ -9,11 +9,10 @@ from h_ctrl.models import Action, Schedule
 from models import Pi
 from subprocess import call
 from django.db.models import Q
+from h_ctrl.const import *
 
 # Create your views here.
-STATUS_RUNNING = 'R'
-STATUS_STOPPED = 'S'
-STATUS_PLANNED = 'P'
+
 
 ACT_TYPE_SINGLE = "SINGLE"
 ACT_TYPE_SCHEDULE = "SCHEDULE"
@@ -82,17 +81,18 @@ def change_schedule_status(sch_id, status):
     schedule.status = status
     # save to DB
     schedule.save()
-    print("Saved:" + status)
     return schedule
 
 
 def stop_schedule(request, pi_id):
     be = Backend()
+    messsage = {"Error"}
     try:
         sch_id = request.POST['sch_id']
-        schedule = change_schedule_status(sch_id, STATUS_STOPPED)
-        messsage = {STATUS_STOPPED}
+        # schedule = change_schedule_status(sch_id, STATUS_STOPPED)
+        schedule = get_object_or_404(Schedule, id=sch_id)
         be.stop_schedule(schedule)
+        messsage = {Const.STATUS_STOPPED}
     except Schedule.DoesNotExist:
         raise Http404
     return HttpResponse(messsage)
@@ -100,11 +100,17 @@ def stop_schedule(request, pi_id):
 
 def start_schedule(request, pi_id):
     be = Backend()
+    messsage = {"Error"}
     try:
         sch_id = request.POST['sch_id']
-        schedule = change_schedule_status(sch_id, STATUS_PLANNED)
-        messsage = {STATUS_PLANNED}
-        be.exec_schedule(schedule)
+        # schedule = change_schedule_status(sch_id, STATUS_PLANNED)
+        schedule = get_object_or_404(Schedule, id=sch_id)
+        # Defense against idiot - do not allow to plan schedule multiple times if now, so process only active schedules
+        if schedule.status is not Const.STATUS_RUNNING or schedule.status is not Const.STATUS_PLANNED:
+            be.exec_schedule(schedule)
+            messsage = {Const.STATUS_PLANNED}
+        else:
+            messsage = {"Nothing"}
     except Schedule.DoesNotExist:
         raise Http404
     return HttpResponse(messsage)
@@ -121,17 +127,17 @@ def sch(request, pi_id):
     print "Backend stat size: %s" % len(be.schedDict)
 
     if action == "stop":
-        status = STATUS_STOPPED
+        status = Const.STATUS_STOPPED
         # cancel currently running schedule and start new
-        schedule_current = Schedule.objects.filter(Q(status=STATUS_RUNNING) | Q(status=STATUS_PLANNED))
+        schedule_current = Schedule.objects.filter(Q(status=Const.STATUS_RUNNING) | Q(status=Const.STATUS_PLANNED))
         if len(schedule_current) > 0:
             print "Got running schedule '%s'" % schedule_current[0]
-            schedule_current[0].status = STATUS_STOPPED
+            schedule_current[0].status = Const.STATUS_STOPPED
             schedule_current[0].save()
             print "Forcing stop scheduler"
             be.stop_schedule(schedule_current[0])
     elif action == "start":
-        status = STATUS_RUNNING
+        status = Const.STATUS_RUNNING
         be.exec_schedule(schedule)
 
     print "Status switched to: %s" % status % ", action: %s" % action
@@ -139,7 +145,7 @@ def sch(request, pi_id):
     schedule.save()
     print("Saved")
 
-    message = "Schedule(" + sch_id + ") is %s" % ( "started" if status == STATUS_RUNNING else "stopped")
+    message = "Schedule(" + sch_id + ") is %s" % ( "started" if status == Const.STATUS_RUNNING else "stopped")
     print("Message:" + message)
     return HttpResponse(message)
 

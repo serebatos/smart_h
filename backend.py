@@ -11,16 +11,14 @@ import datetime
 import logging
 from subprocess import call
 from django.utils import timezone
+from h_ctrl.const import *
+
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smart_h.settings")
 from h_ctrl.models import Action, ActionSchedules, Schedule, Pi, Home
 
-ACT_WAITING = 'W'
-ACT_STOPPED = 'S'
-ACT_RUNNING = 'R'
 
 class Backend(object):
-    c = 0
     logger = logging.getLogger(__name__)
     schedDict = dict()
 
@@ -31,11 +29,16 @@ class Backend(object):
 
     # Выполнение события, запланированного через штатный шедулер, не путать с exec_action
     def exec_event(self, actionschedules, prev_actionschedules):
-        Backend.c -= 1
-        if Backend.c == 0:
+        # Делаем декремент счетчика
+        details = Backend.schedDict.get(actionschedules.schedule_id)
+        details.count -= 1
+        if details.count == 0:
             last_event = True
         else:
             last_event = False
+        # Уменьшили счетчик, положили обратно в словарь
+        Backend.schedDict[actionschedules.schedule_id] = details
+
         # Проверка на проставленность флага "Пропуск"
         if actionschedules.skip is False and actionschedules.schedule.enabled is True:
             self.logger.info("%s Running action {%s}", time.time(), actionschedules.action.name)
@@ -44,100 +47,141 @@ class Backend(object):
             self.exec_action(actualAction)
 
             if last_event is True:
-                actionschedules.status = ACT_STOPPED
-                self.exec_schedule(actionschedules.schedule)
+                actionschedules.status = Const.ACT_STOPPED
+                # Запуск плнирования по новой отсюда не подходит, т.к. если шаг помечен как "пропущенны",
+                # то все сломается
             else:
-                actionschedules.status = ACT_RUNNING
+                actionschedules.status = Const.ACT_RUNNING
             actionschedules.save()
 
             self.logger.info("Backend. Status saved")
 
             if prev_actionschedules is not None:
-                prev_actionschedules.status = ACT_STOPPED
+                prev_actionschedules.status = Const.ACT_STOPPED
                 prev_actionschedules.save()
 
         # Пропускаем действие
         else:
             self.logger.info(unicode("Skipping action {}".format(actionschedules.action.name)))
-            # todo: как сделать,чтобы после перезапуска распбери все работало и как сделать повторение на след день,
-            # как вариант последний шаг заново инициализирует на следующий день шедулер
-        # event_index = self.evt_list.index(actionschedules)
-        # self.logger.info("Event: %s, index: %s, total: %s",actionschedules,event_index,len(self.evt_list))
-        #
 
         # Обновляем время последней активности по данному расписанию
         db_schedule = Schedule.objects.get(pk=actionschedules.schedule.id)
         db_schedule.last_run = datetime.datetime.now()
         db_schedule.save()
 
+        # На последнем действии, даже если оно пропущено, заново инициализируем правило
+        if last_event is True:
+            self.exec_schedule(actionschedules.schedule)
+
     # Выполнение действия(управление ногой, например)
     def exec_action(self, action):
-        self.set_pin(action.pin, action.cmd_code)
-        # command = ["python", "/home/pi/dev/scripts/switch.py", "%s" % actObj.pin, "%s" % actObj.cmd_code]
-        # res = call(command)
+        try:
+            self.set_pin(action.pin, action.cmd_code)
+        except Exception:
+            self.logger.exception("Exception in exec_action")
 
     def repeat_schedule(self, schedule):
         return ""
 
     def exec_schedule(self, schedule):
         db_schedule = Schedule.objects.get(pk=schedule.id)
-        self.logger.info("Executing rule '%s'", db_schedule.name)
-        if db_schedule.enabled == True:
+        prev_act_sch = None  # previous action which status should be changed to "Completed"
+        count = 0
+        act_list = list()
 
-            prev_act_sch = None  # previous action which status should be changed to "Completed'
-            count = 0
-            act_list = list()
+        self.logger.info("Executing rule '%s'", db_schedule.name)
+        if db_schedule.enabled is True:
+            # Создаем шедулер
             self.scheduler = sched.scheduler(time.time, time.sleep)
+            # Инициализируем список
             self.evt_list = act_list
 
             self.logger.info("Logging before planning events")
             print repr(self.scheduler._queue)
             print (len(self.evt_list))
 
-            dt = datetime.datetime.now()
+            dcur = datetime.datetime.now()
             self.logger.info("Planning events")
             for act_sched in db_schedule.actionschedules_set.all():
                 self.logger.info("Action '%s' is being putted in queue. Start time is %s", act_sched.action.name,
                                  act_sched.start_time)
-
-                # time_float = (act_sched.start_time - newTime.utcfromtimestamp(14400)).total_seconds()
+                self.logger.info("Get time to plan from")
                 # Текущее время
-                tcur = time.time()
+                if db_schedule.status == Const.STATUS_STOPPED or db_schedule.status == None:
+                    self.logger.info("Starting as new")
+                    tcur = time.time()
+                elif db_schedule.status == Const.STATUS_RUNNING or db_schedule.status == Const.STATUS_PLANNED:
+                    self.logger.info("Restarting as already started")
+                    tcur = db_schedule.last_run
+
                 # Планируемое время запуска
-                tt = time.mktime((dt.year, dt.month, dt.day, act_sched.start_time.hour, act_sched.start_time.minute,
-                                  act_sched.start_time.second, dt.weekday(), dt.timetuple().tm_yday, -1))
-                # todo: add planned start time to act_sched
-                if tcur > tt:
-                    dt = dt.combine(dt.date(), act_sched.start_time)
-                    # Поле last_run надо менять, наверное, по запуску или действительно вводить поля плановое время запуска, чтобы корректно планировать запуск
-                    dtstart = dt + datetime.timedelta(days=1)
+                tt = time.mktime(
+                    (dcur.year, dcur.month, dcur.day, act_sched.start_time.hour, act_sched.start_time.minute,
+                     act_sched.start_time.second, dcur.weekday(), dcur.timetuple().tm_yday, -1))
+
+
+                dcur = datetime.datetime.combine(dcur.date(), act_sched.start_time)
+                print (tt)
+                print (tcur)
+                print (dcur)
+
+                # dtstart = dcur + datetime.timedelta(minutes=db_schedule.run_every)
+                # tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
+                #                   dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
+                # print "DCur:%s" % dcur
+                # print "Dtstart:%s" % dtstart
+                # dcur = dtstart
+                # dtstart = dcur + datetime.timedelta(minutes=db_schedule.run_every)
+                # tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
+                #                   dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
+                # print "DCur:%s" % dcur
+                # print "Dtstart:%s" % dtstart
+                # todo: какая-то херня тут, не могу в цикле увеличить время
+                while tcur > tt:
+                    self.logger.info("In loop")
+
+                    dcur = datetime.datetime.combine(dcur.date(), act_sched.start_time)
+                    # Поле last_run надо менять, наверное, по запуску или действительно вводить поля плановое время
+                    # запуска, чтобы корректно планировать запуск
+                    dtstart = dcur + datetime.timedelta(minutes=db_schedule.run_every)
                     tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
                                       dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
-                    self.logger.info("Backend. Start time is in the past. Planning this action(%s) on %s",
-                                     act_sched.action.name, dtstart)
+                #
+                #     # self.logger.info("Backend. Start time is in the past. Planning this action(%s) on %s",
+                #     #                  act_sched.action.name, dtstart)
+                #     print("Before")
+                #     print "DCur:%s" % dcur
+                #     print "Dtstart:%s" % dtstart
+                #
+                    dcur = dtstart
+                #     print("After")
+                    print "DCur:%s" % dcur
+                    print "Dtstart:%s" % dtstart
 
                 # planned event - crucial moment in the whole project ^^
                 event_sched = self.scheduler.enterabs(tt, 1, self.exec_event, (act_sched, prev_act_sch))
 
                 # Статус в "Ожидание" выполнения
-                act_sched.status = ACT_WAITING
+                act_sched.status = Const.ACT_WAITING
                 act_sched.save()
 
                 # collected to list
                 self.evt_list.append(event_sched)
                 prev_act_sch = act_sched
                 count += 1
+
             if count > 0:
-                self.schedDict[act_sched.schedule.id] = {"scheduler": self.scheduler, "actions": self.evt_list}
+                self.schedDict[act_sched.schedule.id] = {"scheduler": self.scheduler, "actions": self.evt_list,
+                                                         "count": count}
                 self.logger.info("Schedule '%s' is planned. Total actions %s", db_schedule.name, str(count))
                 self.logger.info("...")
+
                 # single thread version is not suitable for async calls
                 # scheduler.run()
 
                 # Start a thread to run the events
                 t = threading.Thread(target=self.scheduler.run)
                 t.start()
-                Backend.c = count
 
                 # anoter wat to play actions
                 # threading.Timer()
@@ -165,7 +209,7 @@ class Backend(object):
     # Отмена задач Планировщика python
     def force_stop(self):
         # неверно так прерывать, надо после этого пробежаться по всем шагам и выполнить их
-        if self.evt_list != None and self.scheduler != None:
+        if self.evt_list is not None and self.scheduler is not None:
             for e in self.evt_list:
                 self.logger.info("Cancelling(%s)", e)
                 self.scheduler.cancel(e)
@@ -201,12 +245,12 @@ if __name__ == "__main__":
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
     # server.serve_forever()
-    b = Backend()
-    s = Schedule.objects.get(pk=1)
-    print "b={}".format(str(b.c))
+    # b = Backend()
+    # s = Schedule.objects.get(pk=1)
+    # print "b={}".format(str(b.c))
     # b.exec_schedule(s)
-    print "statDict len:%s" % len(b.schedDict)
-    val = b.schedDict.get(s.id)
+    # print "statDict len:%s" % len(b.schedDict)
+    # val = b.schedDict.get(s.id)
     # print val.get("scheduler").queue
 
     # print "Now: %s" % time.time(), "Datetime:%s" % s.last_run
@@ -256,3 +300,17 @@ if __name__ == "__main__":
     for c in range(0, i):
         print "c=%s" % c, "%s" % c, "%", "%s" % den, "=",
         print  c % den
+    tcur = time.time()
+    dcur = datetime.datetime.now()
+    dtstart = dcur
+    tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
+                      dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
+    print(tcur)
+    print(dtstart)
+    print(tt)
+    dtstart = dcur + datetime.timedelta(minutes=10)
+    tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
+                      dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
+    print(dtstart)
+    print(tt)
+    print (tcur - tt)
