@@ -21,6 +21,8 @@ from h_ctrl.models import Action, ActionSchedules, Schedule, Pi, Home
 class Backend(object):
     logger = logging.getLogger(__name__)
     schedDict = dict()
+    scheduler = sched.scheduler(time.time, time.sleep)
+    evt_list = list()
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
@@ -119,44 +121,17 @@ class Backend(object):
                     (dcur.year, dcur.month, dcur.day, act_sched.start_time.hour, act_sched.start_time.minute,
                      act_sched.start_time.second, dcur.weekday(), dcur.timetuple().tm_yday, -1))
 
-
                 dcur = datetime.datetime.combine(dcur.date(), act_sched.start_time)
-                print (tt)
-                print (tcur)
-                print (dcur)
-
-                # dtstart = dcur + datetime.timedelta(minutes=db_schedule.run_every)
-                # tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
-                #                   dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
-                # print "DCur:%s" % dcur
-                # print "Dtstart:%s" % dtstart
-                # dcur = dtstart
-                # dtstart = dcur + datetime.timedelta(minutes=db_schedule.run_every)
-                # tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
-                #                   dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
-                # print "DCur:%s" % dcur
-                # print "Dtstart:%s" % dtstart
-                # todo: какая-то херня тут, не могу в цикле увеличить время
                 while tcur > tt:
                     self.logger.info("In loop")
-
-                    dcur = datetime.datetime.combine(dcur.date(), act_sched.start_time)
                     # Поле last_run надо менять, наверное, по запуску или действительно вводить поля плановое время
                     # запуска, чтобы корректно планировать запуск
                     dtstart = dcur + datetime.timedelta(minutes=db_schedule.run_every)
                     tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
                                       dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
-                #
-                #     # self.logger.info("Backend. Start time is in the past. Planning this action(%s) on %s",
-                #     #                  act_sched.action.name, dtstart)
-                #     print("Before")
-                #     print "DCur:%s" % dcur
-                #     print "Dtstart:%s" % dtstart
-                #
+                    self.logger.info("Backend. Start time is in the past. Planning this action(%s) on %s",
+                                     act_sched.action.name, dtstart)
                     dcur = dtstart
-                #     print("After")
-                    print "DCur:%s" % dcur
-                    print "Dtstart:%s" % dtstart
 
                 # planned event - crucial moment in the whole project ^^
                 event_sched = self.scheduler.enterabs(tt, 1, self.exec_event, (act_sched, prev_act_sch))
@@ -197,12 +172,15 @@ class Backend(object):
 
 
     def stop_schedule(self, schedule):
+        self.logger.info("In stop")
         # Отменяем все, что в Планировщике
         self.force_stop()
         self.logger.info("Self scheduler is cancelled")
         # Поочереди отменяем все, что в статусе "Ожидание" или "В работе" и выключаем ноги
         for act_sched in schedule.actionschedules_set.all():
             self.stop_actsched(act_sched)
+            act_sched.status = 'S'
+            act_sched.save()
         self.logger.info("Backend.Cancelled")
 
 
@@ -210,6 +188,7 @@ class Backend(object):
     def force_stop(self):
         # неверно так прерывать, надо после этого пробежаться по всем шагам и выполнить их
         if self.evt_list is not None and self.scheduler is not None:
+            self.logger.info("Starting loop to Cancel all events")
             for e in self.evt_list:
                 self.logger.info("Cancelling(%s)", e)
                 self.scheduler.cancel(e)

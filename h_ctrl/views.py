@@ -89,7 +89,7 @@ def stop_schedule(request, pi_id):
     messsage = {"Error"}
     try:
         sch_id = request.POST['sch_id']
-        # schedule = change_schedule_status(sch_id, STATUS_STOPPED)
+        # # schedule = change_schedule_status(sch_id, STATUS_STOPPED)
         schedule = get_object_or_404(Schedule, id=sch_id)
         be.stop_schedule(schedule)
         messsage = {Const.STATUS_STOPPED}
