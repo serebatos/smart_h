@@ -33,8 +33,9 @@ class Backend(object):
     def exec_event(self, actionschedules, prev_actionschedules):
         # Делаем декремент счетчика
         details = Backend.schedDict.get(actionschedules.schedule_id)
-        details.count -= 1
-        if details.count == 0:
+        print repr(details)
+        details['count'] -= 1
+        if details['count'] == 0:
             last_event = True
         else:
             last_event = False
@@ -109,6 +110,7 @@ class Backend(object):
                                  act_sched.start_time)
                 self.logger.info("Get time to plan from")
                 # Текущее время
+                print
                 if db_schedule.status == Const.STATUS_STOPPED or db_schedule.status == None:
                     self.logger.info("Starting as new")
                     tcur = time.time()
@@ -122,6 +124,9 @@ class Backend(object):
                      act_sched.start_time.second, dcur.weekday(), dcur.timetuple().tm_yday, -1))
 
                 dcur = datetime.datetime.combine(dcur.date(), act_sched.start_time)
+                if tcur > tt:
+                    self.logger.info("Backend. Start time of action( %s - %s )is in the past.", schedule.name,
+                                     act_sched.action.name)
                 while tcur > tt:
                     self.logger.info("In loop")
                     # Поле last_run надо менять, наверное, по запуску или действительно вводить поля плановое время
@@ -129,10 +134,11 @@ class Backend(object):
                     dtstart = dcur + datetime.timedelta(minutes=db_schedule.run_every)
                     tt = time.mktime((dtstart.year, dtstart.month, dtstart.day, dtstart.hour, dtstart.minute,
                                       dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
-                    self.logger.info("Backend. Start time is in the past. Planning this action(%s) on %s",
-                                     act_sched.action.name, dtstart)
+                    # self.logger.info("Backend. Start time is in the past. Planning this action(%s) on %s",
+                    #                  act_sched.action.name, dtstart)
                     dcur = dtstart
 
+                self.logger.info("Action planned on %s", dtstart)
                 # planned event - crucial moment in the whole project ^^
                 event_sched = self.scheduler.enterabs(tt, 1, self.exec_event, (act_sched, prev_act_sch))
 
@@ -178,6 +184,7 @@ class Backend(object):
         self.logger.info("Self scheduler is cancelled")
         # Поочереди отменяем все, что в статусе "Ожидание" или "В работе" и выключаем ноги
         for act_sched in schedule.actionschedules_set.all():
+            self.logger.info("Turning off (%s - %s)", schedule.name, act_sched.action.name)
             self.stop_actsched(act_sched)
             act_sched.status = 'S'
             act_sched.save()
@@ -293,3 +300,13 @@ if __name__ == "__main__":
     print(dtstart)
     print(tt)
     print (tcur - tt)
+
+    # schedDict = dict()
+    # schedDict[1] = {"scheduler": "test", "actions": "actions", "count": 1}
+    # print repr(schedDict[1])
+    # details = schedDict[1]
+    # print repr(details)
+    # print(details['count'])
+    # details['count']+=1
+    # schedDict[1] = details
+    # print repr(details)
