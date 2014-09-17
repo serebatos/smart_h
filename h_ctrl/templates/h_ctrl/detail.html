@@ -9,8 +9,8 @@
             return function (data, textStatus, jqXHR) {
                 var id = extraData['sch_id'];
                 var text = extraData['text'];
-                var status_id = "status_" + id;
-                updateStatus(status_id, data);
+                console.log(id) {% comment %}todo: Wrong ID here!!!! Check!!!!{% endcomment %}
+                updateStatus(id, data);
             }
         }
 
@@ -38,7 +38,8 @@
         $(document).ready(function () {
             {#            Активация расписания#}
             $(".sched_act_start").click(function () {
-                var requestData = {sch_id: $(this).attr("id"), csrfmiddlewaretoken: '{{ csrf_token }}' };
+                var sch_id = $(this).attr("id").substring($(this).attr("id").lastIndexOf("_") + 1);
+                var requestData = {sch_id: sch_id, csrfmiddlewaretoken: '{{ csrf_token }}' };
                 var extra = {sch_id: $(this).attr("id"), text: "Запланировано"};
 
                 // Send the data using post
@@ -48,14 +49,15 @@
                     data: requestData,
                     success: extraSuccess(extra),
                     error: function (jqXHR, textStatus, errorThrown) {
-                        $("#ajax_status_" + schedule_id).val(textStatus)
+                        {#                        $("#ajax_status_" + schedule_id).val(textStatus)#}
                     }
                 });
             });
 
             {#            Остановка расписания#}
             $(".sched_act_stop").click(function () {
-                var requestData = {sch_id: $(this).attr("id"), csrfmiddlewaretoken: '{{ csrf_token }}' };
+                var sch_id = $(this).attr("id").substring($(this).attr("id").lastIndexOf("_") + 1);
+                var requestData = {sch_id: sch_id, csrfmiddlewaretoken: '{{ csrf_token }}' };
                 var extra = {sch_id: $(this).attr("id"), text: "Остановлен"};
 
                 $.ajax({
@@ -64,7 +66,7 @@
                     data: requestData,
                     success: extraSuccess(extra),
                     error: function (jqXHR, textStatus, errorThrown) {
-                        $("#ajax_status_" + schedule_id).val(textStatus)
+                        {#                        $("#ajax_status_" + schedule_id).val(textStatus)#}
                     }
                 });
             });
@@ -128,9 +130,11 @@
                                 </tr>
                                 <tr valign="middle">
                                     <td style="vertical-align: bottom">
-                                        <input type="button" value="Старт" id="{{ cell.id }}" class="sched_act_start"
+                                        <input type="button" value="Старт" id="sched_btn_start_{{ cell.id }}"
+                                               class="sched_act_start"
                                                style="height: 100%"/>
-                                        <input type="button" value="Стоп" id="{{ cell.id }}" class="sched_act_stop"
+                                        <input type="button" value="Стоп" id="sched_btn_stop_{{ cell.id }}"
+                                               class="sched_act_stop"
                                                style="height: 100%"/>
                                     </td>
                                 </tr>
@@ -201,28 +205,40 @@
     {% endfor %}
 </table>
 <script>
-    function updateStatus(status_id, status) {
-        var statusElem = $("#" + status_id);
-{#        console.log(status_id);#}
-{#        console.log(statusElem.text());#}
+    function updateStatus(sched_id, status) {
+        var start_btn = $("#sched_btn_start_" + sched_id);
+        var stop_btn = $("#sched_btn_stop_" + sched_id);
+        var statusElem = $("#status_" + sched_id);
+        {#                console.log(sched_id);#}
+        {#        console.log(statusElem.text());#}
+        {#                console.log(start_btn);#}
+        {#                console.log(start_btn.value);#}
+        {#        console.log(status)#}
         if (status == 'S') {
             statusElem.text("Остановлен");
-            console.log("Остановлен");
+            {#            console.log("Остановлен");#}
+            start_btn[0].disabled = false;
+            stop_btn[0].disabled = true;
         }
+
         if (status == 'P') {
             statusElem.text("Запланирован");
-            console.log("Запланирован");
+            {#            console.log("Запланирован");#}
+            start_btn[0].disabled = true;
+            stop_btn[0].disabled = false;
         }
 
         if (status == 'R') {
             statusElem.text("Выполняется");
-            console.log("Выполняется");
+            {#            console.log("Выполняется");#}
+            start_btn[0].disabled = true;
+            stop_btn[0].disabled = false;
         }
     }
 
     $(document).ready(function () {
         $("label.status_labels").each(function () {
-            updateStatus($(this).attr("id"), $(this).text());
+            updateStatus($(this).attr("id").substr($(this).attr("id").indexOf("_") + 1), $(this).text());
         });
     });
 
