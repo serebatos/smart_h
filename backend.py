@@ -34,7 +34,7 @@ class Backend(object):
         # Делаем декремент счетчика
         details = Backend.schedDict.get(actionschedules.schedule_id)
         details['count'] -= 1
-        self.logger.info("Action name '%s', count is %s", actionschedules.action.name, details['count'])
+        self.logger.info("Action '%s', count is %s", actionschedules.action.name, details['count'])
         if details['count'] == 0:
             last_event = True
         else:
@@ -44,7 +44,7 @@ class Backend(object):
 
         # Проверка на проставленность флага "Пропуск"
         if actionschedules.skip is False and actionschedules.schedule.enabled is True:
-            self.logger.info("%s Running action {%s}", datetime.datetime.now(), actionschedules.action.name)
+            self.logger.info("%s Running '{%s}'", datetime.datetime.now(), actionschedules.action.name)
 
             actualAction = Action.objects.get(pk=actionschedules.action.id)
             self.exec_action(actualAction)
@@ -65,7 +65,7 @@ class Backend(object):
 
         # Пропускаем действие
         else:
-            self.logger.info(unicode("Skipping action {}".format(actionschedules.action.name)))
+            self.logger.info(unicode("Skipping {}".format(actionschedules.action.name)))
 
         # Обновляем время последней активности по данному расписанию
         db_schedule = Schedule.objects.get(pk=actionschedules.schedule.id)
@@ -106,23 +106,25 @@ class Backend(object):
             self.logger.info("Logging before planning events")
 
             for act_sched in db_schedule.actionschedules_set.all():
-                self.logger.info("Action '%s' is being putted in queue. Start time is %s", act_sched.action.name,
+                self.logger.info("'%s' is being putted in queue. Start time is %s", act_sched.action.name,
                                  act_sched.start_time)
                 # Текущее время
                 if db_schedule.status == Const.STATUS_STOPPED or db_schedule.status == None:
-                    self.logger.info("Starting as new")
-                    tcur = time.time()
+                    tcur = time.time() #todo: под никсами со временем какая-то херь, оно как будто не текушее
+                    self.logger.info("Starting as new. tcur = '%s", tcur)
                 elif db_schedule.status == Const.STATUS_RUNNING or db_schedule.status == Const.STATUS_PLANNED:
-                    self.logger.info("Restarting as already started")
                     tcur = db_schedule.last_run
+                    self.logger.info("Restarting as already started. tcur=", tcur)
 
+                dcur = datetime.datetime.combine(dcur.date(), act_sched.start_time)
                 # Планируемое время запуска
                 tt = time.mktime(
                     (dcur.year, dcur.month, dcur.day, act_sched.start_time.hour, act_sched.start_time.minute,
                      act_sched.start_time.second, dcur.weekday(), dcur.timetuple().tm_yday, -1))
 
-                dcur = datetime.datetime.combine(dcur.date(), act_sched.start_time)
-                self.logger.info("Analyzing previous start time ")
+                dtstart = dcur
+
+                self.logger.info("Analyzing previous start time. tt ='%s'", tt)
 
                 if prev_starttime is None:
 
@@ -154,7 +156,7 @@ class Backend(object):
                                       dtstart.second, dtstart.weekday(), dtstart.timetuple().tm_yday, -1))
 
                 prev_starttime = dtstart
-                self.logger.info("Action planned on %s, prevtime is set to '%s'", dtstart, prev_starttime)
+                self.logger.info("'%s' is planned on %s, prevtime is set to '%s'", act_sched.action.name, dtstart, prev_starttime)
 
                 # planned event - crucial moment in the whole project ^^
                 event_sched = self.scheduler.enterabs(tt, 1, self.exec_event, (act_sched, prev_act_sch))
