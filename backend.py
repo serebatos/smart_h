@@ -12,9 +12,11 @@ import logging
 from subprocess import call
 from django.utils import timezone
 from h_ctrl.const import *
-
+import django
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smart_h.settings")
+print(django.VERSION)
+
 from h_ctrl.models import Action, ActionSchedules, Schedule, Pi, Home
 
 
