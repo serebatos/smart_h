@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def get_index(request):
     message = 'Test'
 
-    return render(request, 'h_ctrl/simple_actions.html', message)
+    return render(request, 'h_ctrl/simple_actions.html')
 
 def action(request):
     logger.info("Test")
