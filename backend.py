@@ -240,7 +240,7 @@ class Backend(object):
 
     def set_pin(self, pin, val):
         # Проверка, в какой ОС
-        isLinux = False
+        isLinux = True
         self.logger.info("Checking Operating System")
 
         if isLinux == True:

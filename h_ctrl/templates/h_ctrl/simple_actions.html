@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <script src="{{ STATIC_URL }}jquery-1.11.1.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#simple").click(function () {
+                var requestData = {val:"1",csrfmiddlewaretoken: '{{ csrf_token }}' };
+                // Send the data using post
+                $.ajax({
+                    url: "{% url "simple_act" %}",
+                    type: "POST",
+                    data: requestData,
+                    success: function (data, textStatus, jqXHR) {
+                        console.log(textStatus)
+                        console.log(data)
+                        $("#res").text=data
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        {#                        $("#ajax_status_" + schedule_id).val(textStatus)#}
+                        alert("Err")
+                    }
+                });
+            });
+            $("#stop").click(function () {
+                var requestData = {val:"0",csrfmiddlewaretoken: '{{ csrf_token }}' };
+                // Send the data using post
+                $.ajax({
+                    url: "{% url "simple_act" %}",
+                    type: "POST",
+                    data: requestData,
+                    success: function (data, textStatus, jqXHR) {
+                        console.log(textStatus)
+                        console.log(data)
+                        $("#res").text=data
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        {#                        $("#ajax_status_" + schedule_id).val(textStatus)#}
+                        alert("Err")
+                    }
+                });
+            });
+        });
+    </script>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<input type="button" value="Старт" id="simple" class="simple_action" style="height: 100%"/><br/>
+<input type="button" value="Стоп" id="stop" class="simple_action" style="height: 100%"/><br/>
+<input type="text" id="res" value="..."/>
+
+</body>
+</html>

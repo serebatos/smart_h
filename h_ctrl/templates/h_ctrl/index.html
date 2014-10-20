@@ -4,6 +4,7 @@
         <li><a href="{% url 'detail' rasp.id  %}">{{ rasp.name }}</a></li>
     {% endfor %}
     </ul>
+    <a href="./actions">Get simple</a>
 {% else %}
     <p>No devices are available.</p>
 {% endif %}
